@@ -3,7 +3,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home' // Corrected casing
 import About from './pages/About'
 import Shop from './pages/Shop'
-import Gallery from './pages/Gallery'
+import Updates from './pages/Updates'
 import Waiver from './pages/Waiver'
 import './App.css'
 import Classes from './pages/Classes'
@@ -18,7 +18,7 @@ function App() {
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
         <Route path="shop" element={<Shop />} />
-        <Route path="gallery" element={<Gallery />} />
+        <Route path="updates" element={<Updates />} />
         <Route path="waiver" element={<Waiver />}/>
         <Route path="classes" element={<Classes />} />
       </Route>

@@ -13,7 +13,7 @@ function Layout() {
         <div className="nav-links">
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>HOME</Link>
           <Link to="/shop" className={location.pathname === '/shop' ? 'active' : ''}>SHOP</Link>
-          <Link to="/gallery" className={location.pathname === '/gallery' ? 'active' : ''}>GALLERY</Link>
+          <Link to="/updates" className={location.pathname === '/updates' ? 'active' : ''}>UPDATES</Link>
           <Link to="/about" className={location.pathname === '/about' ? 'active' : ''}>ABOUT</Link>
           <Link to="/classes" className={location.pathname === '/classes' ? 'active' : ''}>CLASSES</Link>
         </div>

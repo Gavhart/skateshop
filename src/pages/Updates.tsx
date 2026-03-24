@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 
-function Gallery() {
+function Updates() {
   return (
-    <div className="page gallery-page">
+    <div className="page updates-page">
       <div className="page-header">
-        <h1 className="glitch" data-text="GALLERY">GALLERY</h1>
+        <h1 className="glitch" data-text="UPDATES">UPDATES</h1>
         <p>Follow @hartboysskateshop on Instagram</p>
       </div>
       
@@ -61,4 +61,4 @@ function Gallery() {
   )
 }
 
-export default Gallery
+export default Updates
