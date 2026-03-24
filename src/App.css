@@ -2346,3 +2346,20 @@ button:disabled {
 .behold-container img {
   border-radius: 4px;
 }
+
+/* Behold Widget Container */
+.behold-container {
+  min-height: 400px;
+  padding: 1rem;
+}
+
+/* Make behold widget match theme */
+.behold-container behold-widget {
+  --behold-background: transparent;
+  --behold-text-color: #D4CFC2;
+}
+
+/* Override behold default styles if needed */
+.behold-container img {
+  border-radius: 4px;
+}

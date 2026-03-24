@@ -1,6 +1,17 @@
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 
 function Updates() {
+  useEffect(() => {
+    // Load Behold script
+    if (!document.querySelector('script[src="https://w.behold.so/widget.js"]')) {
+      const script = document.createElement('script')
+      script.type = 'module'
+      script.src = 'https://w.behold.so/widget.js'
+      document.head.appendChild(script)
+    }
+  }, [])
+
   return (
     <div className="page updates-page">
       <div className="page-header">
@@ -29,17 +40,9 @@ function Updates() {
             <span>REC ● LIVE</span>
           </div>
           
-          {/* YOUR BEHOLD WIDGET */}
+          {/* Behold Widget - data attribute version (no TS errors) */}
           <div className="behold-container">
-            <behold-widget feed-id="aIDGUZuwy7im6UeCTBMW"></behold-widget>
-            <script dangerouslySetInnerHTML={{
-              __html: `(() => {
-                const d=document,s=d.createElement("script");
-                s.type="module";
-                s.src="https://w.behold.so/widget.js";
-                d.head.append(s);
-              })();`
-            }} />
+            <div data-behold-id="aIDGUZuwy7im6UeCTBMW"></div>
           </div>
         </div>
         
