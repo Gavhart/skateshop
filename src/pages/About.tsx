@@ -108,21 +108,60 @@ function About() {
             From free beginner classes to honest gear recommendations, we're here for skaters at every level.
           </p>
           
-          <div className="about-info">
-            <div className="info-item">
-              <h4>📍 FIND US</h4>
-              <p>Peninsula Center Mall<br />Suite 48C<br />44332 Sterling Highway<br />Soldotna, AK 99669</p>
+          {/* CLEANER INFO GRID */}
+          <div className="info-grid">
+            
+            {/* Find Us */}
+            <div className="info-card">
+              <div className="info-header">
+                <span className="info-icon">📍</span>
+                <h3>FIND US</h3>
+              </div>
+              <div className="info-body">
+                <p>Peninsula Center Mall</p>
+                <p>Suite 48C</p>
+                <p>44332 Sterling Highway</p>
+                <p>Soldotna, AK 99669</p>
+              </div>
             </div>
-            <div className="info-item">
-              <h4>🕐 HOURS - Winter</h4>
-              <p>Monday - Saturday<br />11:00 AM - 6:00 PM<br />Sunday Closed</p>
-              <h4>🕐 HOURS - Summer</h4>
-              <p>Monday - Saturday<br />10:00 AM - 7:00 PM<br />Sunday Closed</p>
+
+            {/* Hours - Combined */}
+            <div className="info-card hours-card">
+              <div className="info-header">
+                <span className="info-icon">🕐</span>
+                <h3>HOURS</h3>
+              </div>
+              <div className="info-body">
+                <div className="hours-block">
+                  <span className="season-tag winter">Winter</span>
+                  <p>Mon - Sat: 11:00 AM - 6:00 PM</p>
+                  <p>Sunday: Closed</p>
+                </div>
+                <div className="hours-block">
+                  <span className="season-tag summer">Summer</span>
+                  <p>Mon - Sat: 10:00 AM - 7:00 PM</p>
+                  <p>Sunday: Closed</p>
+                </div>
+              </div>
             </div>
-            <div className="info-item">
-              <h4>📱 SAY HELLO</h4>
-              <p>Drop by the shop<br />DM @hartboysskateshop<br />Or just come hang 🤙</p>
+
+            {/* Say Hello */}
+            <div className="info-card">
+              <div className="info-header">
+                <span className="info-icon">📱</span>
+                <h3>SAY HELLO</h3>
+              </div>
+              <div className="info-body">
+                <p>Drop by the shop</p>
+                <p>
+                  <a href="https://instagram.com/hartboysskateshop" target="_blank" rel="noreferrer">
+                    DM @hartboysskateshop
+                  </a>
+                </p>
+                <p>Or just come hang 🤙</p>
+              </div>
             </div>
+
           </div>
           
           <div className="about-cta">
