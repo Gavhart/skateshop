@@ -114,8 +114,10 @@ function About() {
               <p>Peninsula Center Mall<br />Suite 48C<br />44332 Sterling Highway<br />Soldotna, AK 99669</p>
             </div>
             <div className="info-item">
-              <h4>🕐 HOURS</h4>
-              <p>Monday - Saturday<br />10:00 AM - 8:00 PM<br />Sunday<br />Closed</p>
+              <h4>🕐 HOURS - Winter</h4>
+              <p>Monday - Saturday<br />11:00 AM - 6:00 PM<br />Sunday Closed</p>
+              <h4>🕐 HOURS - Summer</h4>
+              <p>Monday - Saturday<br />10:00 AM - 7:00 PM<br />Sunday Closed</p>
             </div>
             <div className="info-item">
               <h4>📱 SAY HELLO</h4>

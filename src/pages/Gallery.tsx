@@ -8,42 +8,54 @@ function Gallery() {
         <p>Follow @hartboysskateshop on Instagram</p>
       </div>
       
-      <div className="instagram-section">
+      <section className="instagram-section">
         <div className="instagram-header">
-          <h2>📸 Latest from the Shop</h2>
+          <h2>📸 LIVE FROM THE SHOP</h2>
+          <p>Real moments. Real skaters. Real Alaska.</p>
           <a 
             href="https://instagram.com/hartboysskateshop" 
             target="_blank" 
             rel="noreferrer"
             className="btn btn-primary"
           >
-            FOLLOW ON INSTAGRAM
+            FOLLOW @HARTBOYSSKATESHOP
           </a>
         </div>
         
-        {/* SnapWidget Embed - Get your code from snapwidget.com */}
-        <div className="instagram-feed">
-          <div style={{ 
-            padding: '4rem', 
-            textAlign: 'center', 
-            background: 'var(--bg2)',
-            border: '2px dashed var(--accent)',
-            color: 'var(--muted)'
-          }}>
-            <p>🛹 Instagram feed coming soon!</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '1rem' }}>
-              Get your SnapWidget code from <a href="https://snapwidget.com" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>snapwidget.com</a>
-            </p>
+        {/* Behold.so Instagram Feed */}
+        <div className="instagram-feed glitch-box">
+          <div className="tape-corner"></div>
+          <div className="image-overlay">
+            <span>REC ● LIVE</span>
           </div>
+          
+          {/* Replace this with your Behold embed script */}
+          <div className="feed-placeholder">
+            <span className="feed-icon">📡</span>
+            <p className="feed-status">CONNECTING BEHOLD FEED...</p>
+            <p className="feed-instruction">
+              Connect your Instagram to <a href="https://behold.so" target="_blank" rel="noreferrer">behold.so</a> then paste your embed script here.
+            </p>
+            <a href="https://behold.so" target="_blank" rel="noreferrer" className="btn btn-secondary">
+              SET UP BEHOLD
+            </a>
+          </div>
+          
+          {/* 
+            Your Behold embed will look like this:
+            <div data-behold-id="YOUR-BEHOLD-ID"></div>
+            <script src="https://behold.so/embed/YOUR-SCRIPT.js" async></script>
+          */}
         </div>
         
-        <p className="instagram-note">
-          Tag your photos <strong>#hartboysskateshop</strong> to be featured!
-        </p>
-      </div>
+        <div className="hashtag-box">
+          <p>Tag <strong>#hartboysskateshop</strong> to be featured.</p>
+          <span className="hashtag-icon">📸</span>
+        </div>
+      </section>
       
-      <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-        <Link to="/" className="btn btn-secondary">BACK TO HOME</Link>
+      <div className="gallery-back">
+        <Link to="/" className="btn btn-secondary">← BACK TO HOME</Link>
       </div>
     </div>
   )
