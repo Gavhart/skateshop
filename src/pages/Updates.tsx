@@ -29,27 +29,22 @@ function Updates() {
             <span>REC ● LIVE</span>
           </div>
           
-          {/* Replace this with your Behold embed script */}
-          <div className="feed-placeholder">
-            <span className="feed-icon">📡</span>
-            <p className="feed-status">CONNECTING BEHOLD FEED...</p>
-            <p className="feed-instruction">
-              Connect your Instagram to <a href="https://behold.so" target="_blank" rel="noreferrer">behold.so</a> then paste your embed script here.
-            </p>
-            <a href="https://behold.so" target="_blank" rel="noreferrer" className="btn btn-secondary">
-              SET UP BEHOLD
-            </a>
+          {/* YOUR BEHOLD WIDGET */}
+          <div className="behold-container">
+            <behold-widget feed-id="aIDGUZuwy7im6UeCTBMW"></behold-widget>
+            <script dangerouslySetInnerHTML={{
+              __html: `(() => {
+                const d=document,s=d.createElement("script");
+                s.type="module";
+                s.src="https://w.behold.so/widget.js";
+                d.head.append(s);
+              })();`
+            }} />
           </div>
-          
-          {/* 
-            Your Behold embed will look like this:
-            <div data-behold-id="YOUR-BEHOLD-ID"></div>
-            <script src="https://behold.so/embed/YOUR-SCRIPT.js" async></script>
-          */}
         </div>
         
         <div className="hashtag-box">
-          <p>Tag <strong>#hartboysskateshop</strong> to be featured.</p>
+          <p>Tag <strong>#hartboysskateshop</strong> to be featured!</p>
           <span className="hashtag-icon">📸</span>
         </div>
       </section>
