@@ -7,6 +7,7 @@ const BRANDS = [
   'BONES', 'REAL', 'ALIEN WORKSHOP', 'QUASI', 'HABITAT'
 ]
 
+
 function Home() {
   return (
     <>
@@ -20,7 +21,7 @@ function Home() {
         <div className="x-mark x-4"></div>
         
         <div className="hero-logo">
-          <img src="/logo.png" alt="Hart Boys Skate Shop" className="main-logo" />
+          <img src="/logo.jpeg" alt="Hart Boys Skate Shop" className="main-logo" />
         </div>
         
         <div className="tagline now-open">

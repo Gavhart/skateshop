@@ -2363,3 +2363,197 @@ button:disabled {
 .behold-container img {
   border-radius: 4px;
 }
+
+/* BIGGER LOGO ON HOMEPAGE */
+.hero .main-logo {
+  max-width: 650px; /* was 500px */
+  width: 95vw;
+}
+
+/* Even bigger on desktop */
+@media (min-width: 1024px) {
+  .hero .main-logo {
+    max-width: 750px;
+  }
+}
+
+/* Mobile still reasonable */
+@media (max-width: 768px) {
+  .hero .main-logo {
+    max-width: 350px;
+  }
+}
+
+/* REDUCE EMPTY SPACE ON HOMEPAGE */
+.hero {
+  min-height: auto; /* was 100vh */
+  padding: 6rem 2rem 3rem; /* reduced from 8rem top, 4rem bottom */
+}
+
+/* Less margin on logo */
+.hero-logo {
+  margin-bottom: 1.5rem; /* was 2rem */
+}
+
+/* Tighter tagline spacing */
+.tagline.now-open {
+  margin-top: 1.5rem; /* was 2rem */
+  padding: 0.75rem 1.5rem; /* was 1rem 2rem */
+}
+
+/* Compact buttons */
+.hero-buttons {
+  margin-top: 2rem; /* was 3rem */
+  gap: 1rem; /* was 1.5rem */
+}
+
+/* Mobile even tighter */
+@media (max-width: 768px) {
+  .hero {
+    padding: 5rem 1rem 2rem;
+  }
+  
+  .main-logo {
+    max-width: 320px; /* smaller on mobile */
+  }
+}
+
+/* SMALLER LOGO IN HEADER (NAVBAR) */
+.navbar .logo-img {
+  height: 35px; /* was 50px */
+  width: auto;
+}
+
+/* SMALLER LOGO IN FOOTER */
+.footer-logo {
+  height: 40px; /* was 60px */
+  width: auto;
+}
+
+/* Mobile even smaller */
+@media (max-width: 768px) {
+  .navbar .logo-img {
+    height: 30px;
+  }
+  
+  .footer-logo {
+    height: 35px;
+  }
+}
+
+/* COMPACT FOOTER */
+.footer {
+  padding: 2rem 1.5rem 1rem; /* was 4rem 2rem 2rem */
+  border-top: 1px solid #2a2a2a;
+}
+
+.footer-content {
+  margin-bottom: 1.5rem; /* was 3rem */
+  gap: 1rem; /* was 2rem */
+}
+
+.footer-brand {
+  gap: 0.75rem; /* was 1.5rem */
+}
+
+.footer-brand p {
+  font-size: 0.8rem; /* was 0.9rem */
+  line-height: 1.5;
+}
+
+.footer-links {
+  gap: 1.5rem; /* was 2.5rem */
+}
+
+.footer-links a {
+  font-size: 0.75rem; /* was 0.8rem */
+}
+
+.copyright {
+  padding-top: 1rem; /* was 2rem */
+  font-size: 0.7rem; /* was 0.75rem */
+}
+
+/* Mobile - even more compact */
+@media (max-width: 768px) {
+  .footer {
+    padding: 1.5rem 1rem 0.75rem;
+  }
+  
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  .footer-brand {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* VHS TRACKING EFFECT */
+.hero-logo {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-logo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    transparent 50%,
+    rgba(0, 255, 0, 0.05) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  animation: tracking 0.2s linear infinite;
+  z-index: 2;
+}
+
+@keyframes tracking {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* Occasional glitch line */
+.hero-logo::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: scanline 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanline {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  20% { top: 100%; opacity: 0; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* RGB split on the image itself */
+.hero-logo img {
+  filter: drop-shadow(0 0 0 rgba(255, 0, 0, 0.3)) 
+          drop-shadow(2px 0 0 rgba(0, 255, 255, 0.3));
+  animation: rgb-split 4s ease-in-out infinite;
+}
+
+@keyframes rgb-split {
+  0%, 90%, 100% { 
+    filter: drop-shadow(0 0 0 rgba(255, 0, 0, 0.3)) 
+            drop-shadow(0 0 0 rgba(0, 255, 255, 0.3));
+  }
+  92% { 
+    filter: drop-shadow(-3px 0 0 rgba(255, 0, 0, 0.5)) 
+            drop-shadow(3px 0 0 rgba(0, 255, 255, 0.5));
+  }
+  94% { 
+    filter: drop-shadow(2px 0 0 rgba(255, 0, 0, 0.5)) 
+            drop-shadow(-2px 0 0 rgba(0, 255, 255, 0.5));
+  }
+}

@@ -7,7 +7,7 @@ function Layout() {
     <div className="site">
       <nav className="navbar">
         <Link to="/" className="logo">
-          <img src="/logo.png" alt="Hart Boys" className="logo-img" />
+          <img src="/logo.jpeg" alt="Hart Boys" className="logo-img" />
         </Link>
         
         <div className="nav-links">
@@ -26,7 +26,7 @@ function Layout() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <img src="/logo.png" alt="Hart Boys" className="footer-logo" />
+            <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
             <p>Peninsula Center Mall<br />Suite 48C • Soldotna, AK<br />Now Open</p>
           </div>
           <div className="footer-links">
