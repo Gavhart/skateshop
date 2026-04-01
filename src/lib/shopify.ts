@@ -126,18 +126,18 @@ export async function getProducts(): Promise<Product[]> {
 export async function createCheckout(lineItems: LineItem[]) {
   if (!lineItems?.length) throw new Error('Cart empty')
 
-  // Build return URL so Shopify's "Return to store" link brings customers back
-  const returnUrl = `${window.location.origin}/shop?checkout_cancelled=1`
-
+  // Shopify Storefront API 2024+ uses cartCreate instead of checkoutCreate
   const query = `
-    mutation($input: CheckoutCreateInput!) {
-      checkoutCreate(input: $input) {
-        checkout {
+    mutation cartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
+        cart {
           id
-          webUrl
-          totalPrice { amount currencyCode }
+          checkoutUrl
+          cost {
+            totalAmount { amount currencyCode }
+          }
         }
-        checkoutUserErrors { field message code }
+        userErrors { field message }
       }
     }
   `
@@ -152,8 +152,8 @@ export async function createCheckout(lineItems: LineItem[]) {
       query,
       variables: {
         input: {
-          lineItems: lineItems.map((i: LineItem) => ({
-            variantId: i.variantId,
+          lines: lineItems.map((i: LineItem) => ({
+            merchandiseId: i.variantId,
             quantity: i.quantity
           }))
         }
@@ -163,26 +163,22 @@ export async function createCheckout(lineItems: LineItem[]) {
 
   const data = await response.json()
 
-  // Handle GraphQL-level errors
   if (data.errors?.length) {
     throw new Error(data.errors[0].message || 'Checkout request failed')
   }
 
-  const checkoutUserErrors = data.data?.checkoutCreate?.checkoutUserErrors || []
-  if (checkoutUserErrors.length) {
-    throw new Error(checkoutUserErrors[0].message || 'Could not create checkout')
+  const userErrors = data.data?.cartCreate?.userErrors || []
+  if (userErrors.length) {
+    throw new Error(userErrors[0].message || 'Could not create cart')
   }
 
-  const checkout = data.data?.checkoutCreate?.checkout
-  if (!checkout?.webUrl) throw new Error('No checkout URL returned from Shopify')
-
-  // Append return URL so Shopify's "Return to store" link works
-  const checkoutUrl = `${checkout.webUrl}&return_to=${encodeURIComponent(returnUrl)}`
+  const cart = data.data?.cartCreate?.cart
+  if (!cart?.checkoutUrl) throw new Error('No checkout URL returned from Shopify')
 
   return {
-    url: checkoutUrl,
-    id: checkout.id,
-    total: checkout.totalPrice?.amount,
-    currency: checkout.totalPrice?.currencyCode,
+    url: cart.checkoutUrl,
+    id: cart.id,
+    total: cart.cost?.totalAmount?.amount,
+    currency: cart.cost?.totalAmount?.currencyCode,
   }
 }
