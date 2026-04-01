@@ -175,8 +175,12 @@ export async function createCheckout(lineItems: LineItem[]) {
   const cart = data.data?.cartCreate?.cart
   if (!cart?.checkoutUrl) throw new Error('No checkout URL returned from Shopify')
 
+  // Append return_url so Shopify redirects back to our site after order
+  const returnUrl = `${window.location.origin}/order-success`
+  const checkoutUrl = `${cart.checkoutUrl}?return_url=${encodeURIComponent(returnUrl)}`
+
   return {
-    url: cart.checkoutUrl,
+    url: checkoutUrl,
     id: cart.id,
     total: cart.cost?.totalAmount?.amount,
     currency: cart.cost?.totalAmount?.currencyCode,
