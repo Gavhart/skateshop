@@ -754,7 +754,7 @@ export default function Shop() {
                   </div>
                   {/truck/i.test(item.title + ' ' + (item.productType || '')) && item.quantity % 2 !== 0 && (
                     <p style={{ margin: '0.35rem 0 0', fontSize: '0.7rem', color: '#f5a623', background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.3)', borderRadius: 4, padding: '0.25rem 0.4rem', lineHeight: 1.4 }}>
-                      🛹 Trucks come in pairs — you need <strong>2</strong> for a complete setup!
+                      🛹 A quantity of <strong>2</strong> trucks is required for a complete board.
                     </p>
                   )}
                 </div>
