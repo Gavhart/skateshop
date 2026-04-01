@@ -723,6 +723,9 @@ export default function Shop() {
         </div>
 
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
+          <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: `1px solid rgba(201,169,97,0.2)`, padding: '0.45rem 1.25rem', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $100</span>
+          </div>
           {!cart.length ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: MUTED, textAlign: 'center', gap: '0.875rem' }}>
               <span style={{ fontSize: '2.75rem', opacity: 0.4 }}>🛹</span>
@@ -766,6 +769,31 @@ export default function Shop() {
 
         {cart.length > 0 && (
           <div style={{ padding: '1.125rem 1.25rem', borderTop: `1px solid ${BORDER}` }}>
+            {/* ── FREE SHIPPING BAR ── */}
+            {(() => {
+              const FREE_SHIP = 100
+              const remaining = Math.max(0, FREE_SHIP - cartTotal)
+              const pct = Math.min(100, (cartTotal / FREE_SHIP) * 100)
+              const unlocked = cartTotal >= FREE_SHIP
+              return (
+                <div style={{ marginBottom: '1rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '0.65rem 0.75rem' }}>
+                  <p style={{ margin: '0 0 0.45rem', fontSize: '0.72rem', color: unlocked ? '#4ade80' : MUTED, letterSpacing: '0.05em', textAlign: 'center' }}>
+                    {unlocked
+                      ? '🎉 You\'ve unlocked FREE SHIPPING!'
+                      : `🚚 Add $${remaining.toFixed(2)} more for FREE shipping`}
+                  </p>
+                  <div style={{ height: 6, background: '#2a2a2a', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${pct}%`,
+                      background: unlocked ? '#4ade80' : `linear-gradient(90deg, ${GOLD}, #e8a020)`,
+                      borderRadius: 99,
+                      transition: 'width 0.4s ease'
+                    }} />
+                  </div>
+                </div>
+              )
+            })()}
             {checkoutError && (
               <div style={{ background: 'rgba(220,38,38,0.12)', border: `1px solid ${RED}`, color: '#f87171', padding: '0.625rem 0.875rem', borderRadius: 6, marginBottom: '0.875rem', fontSize: '0.82rem' }}>
                 {checkoutError}
