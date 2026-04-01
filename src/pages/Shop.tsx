@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react"
 import { getProducts, createCheckout } from "../lib/shopify"
-import SmartPagination from "../components/SmartPagination"
 import { isExcluded } from "../lib/filters"
 
 const GOLD = '#C9A961'
@@ -1062,8 +1061,22 @@ export default function Shop() {
           )}
 
           {totalPages > 1 && (
-            <div style={{ marginTop: '2.5rem' }}>
-              <SmartPagination currentPage={page} totalPages={totalPages} onPageChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+            <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={page === 1}
+                style={{ padding: '0.4rem 0.9rem', background: page === 1 ? '#222' : GOLD, color: page === 1 ? MUTED : '#000', border: 'none', borderRadius: 6, cursor: page === 1 ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
+              >← Prev</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button key={n} onClick={() => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  style={{ width: 36, height: 36, background: n === page ? GOLD : '#222', color: n === page ? '#000' : TEXT, border: `1px solid ${n === page ? GOLD : BORDER}`, borderRadius: 6, cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
+                >{n}</button>
+              ))}
+              <button
+                onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                disabled={page === totalPages}
+                style={{ padding: '0.4rem 0.9rem', background: page === totalPages ? '#222' : GOLD, color: page === totalPages ? MUTED : '#000', border: 'none', borderRadius: 6, cursor: page === totalPages ? 'default' : 'pointer', fontWeight: 700, fontSize: '0.85rem' }}
+              >Next →</button>
             </div>
           )}
         </div>
