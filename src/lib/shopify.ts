@@ -155,7 +155,11 @@ export async function createCheckout(lineItems: LineItem[]) {
           lines: lineItems.map((i: LineItem) => ({
             merchandiseId: i.variantId,
             quantity: i.quantity
-          }))
+          })),
+          attributes: [
+            { key: 'return_url', value: window.location.origin },
+            { key: '_return_url', value: window.location.origin }
+          ]
         }
       }
     })
