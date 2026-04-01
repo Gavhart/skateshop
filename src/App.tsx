@@ -1,15 +1,13 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
-import Home from './pages/Home' // Corrected casing
+import Home from './pages/Home'
 import About from './pages/About'
 import Shop from './pages/Shop'
 import Updates from './pages/Updates'
 import Waiver from './pages/Waiver'
-import './App.css'
 import Classes from './pages/Classes'
-
-// Inside Routes:
-
+import OrderSuccess from './pages/OrderSuccess'
+import './App.css'
 
 function App() {
   return (
@@ -19,8 +17,9 @@ function App() {
         <Route path="about" element={<About />} />
         <Route path="shop" element={<Shop />} />
         <Route path="updates" element={<Updates />} />
-        <Route path="waiver" element={<Waiver />}/>
+        <Route path="waiver" element={<Waiver />} />
         <Route path="classes" element={<Classes />} />
+        <Route path="order-success" element={<OrderSuccess />} />
       </Route>
     </Routes>
   )
