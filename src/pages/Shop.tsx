@@ -103,7 +103,9 @@ export default function Shop() {
   const [expandedCats, setExpandedCats] = useState<string[]>(['skate'])
   const [page, setPage] = useState(1)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [cart, setCart] = useState<any[]>([])
+  const [cart, setCart] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem('hb_cart') || '[]') } catch { return [] }
+  })
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [cartAnimating, setCartAnimating] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
@@ -115,6 +117,11 @@ export default function Shop() {
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number; icon: string }[]>([])
 
   const searchRef = useRef<HTMLInputElement>(null)
+
+  // Persist cart to localStorage so items survive page navigation
+  useEffect(() => {
+    try { localStorage.setItem('hb_cart', JSON.stringify(cart)) } catch {}
+  }, [cart])
 
   // Reset gallery index whenever a new product modal opens
   useEffect(() => { setModalImageIdx(0) }, [selectedProduct])
@@ -724,7 +731,7 @@ export default function Shop() {
 
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
           <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: `1px solid rgba(201,169,97,0.2)`, padding: '0.45rem 1.25rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $100</span>
+            <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $150</span>
           </div>
           {!cart.length ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: MUTED, textAlign: 'center', gap: '0.875rem' }}>
@@ -771,7 +778,7 @@ export default function Shop() {
           <div style={{ padding: '1.125rem 1.25rem', borderTop: `1px solid ${BORDER}` }}>
             {/* ── FREE SHIPPING BAR ── */}
             {(() => {
-              const FREE_SHIP = 100
+              const FREE_SHIP = 150
               const remaining = Math.max(0, FREE_SHIP - cartTotal)
               const pct = Math.min(100, (cartTotal / FREE_SHIP) * 100)
               const unlocked = cartTotal >= FREE_SHIP
