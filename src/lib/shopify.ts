@@ -123,7 +123,7 @@ export async function getProducts(): Promise<Product[]> {
   return allProducts
 }
 
-export async function createCheckout(lineItems: LineItem[]) {
+export async function createCheckout(lineItems: LineItem[], note?: string) {
   if (!lineItems?.length) throw new Error('Cart empty')
 
   // Shopify Storefront API 2024+ uses cartCreate instead of checkoutCreate
@@ -156,6 +156,7 @@ export async function createCheckout(lineItems: LineItem[]) {
             merchandiseId: i.variantId,
             quantity: i.quantity
           })),
+          note: note || undefined,
           attributes: [
             { key: 'return_url', value: window.location.origin },
             { key: '_return_url', value: window.location.origin }

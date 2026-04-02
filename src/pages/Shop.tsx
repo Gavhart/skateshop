@@ -111,6 +111,7 @@ export default function Shop() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [orderNote, setOrderNote] = useState('')
   const [addedProduct, setAddedProduct] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
   const [modalImageIdx, setModalImageIdx] = useState(0)
@@ -255,7 +256,7 @@ export default function Shop() {
     setIsCheckingOut(true)
     setCheckoutError(null)
     try {
-      const checkout = await createCheckout(cart)
+      const checkout = await createCheckout(cart, orderNote)
       // Redirect to Shopify-hosted checkout
       window.location.href = checkout.url
     } catch (err: any) {
@@ -801,6 +802,24 @@ export default function Shop() {
                 </div>
               )
             })()}
+            {/* ── ORDER NOTE ── */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', color: MUTED, fontSize: '0.72rem', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>ORDER NOTE (OPTIONAL)</label>
+              <textarea
+                value={orderNote}
+                onChange={e => setOrderNote(e.target.value)}
+                placeholder="Special instructions, gift messages, delivery notes..."
+                rows={3}
+                style={{
+                  width: '100%', background: '#1a1a1a', border: `1px solid ${BORDER}`,
+                  borderRadius: 6, color: TEXT, fontSize: '0.8rem', padding: '0.5rem 0.625rem',
+                  resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={e => e.target.style.borderColor = GOLD}
+                onBlur={e => e.target.style.borderColor = BORDER}
+              />
+            </div>
             {checkoutError && (
               <div style={{ background: 'rgba(220,38,38,0.12)', border: `1px solid ${RED}`, color: '#f87171', padding: '0.625rem 0.875rem', borderRadius: 6, marginBottom: '0.875rem', fontSize: '0.82rem' }}>
                 {checkoutError}
