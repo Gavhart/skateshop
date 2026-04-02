@@ -720,6 +720,7 @@ export default function Shop() {
         borderLeft: `2px solid ${GOLD}`,
         boxShadow: isCartOpen ? '-8px 0 48px rgba(0,0,0,0.7)' : 'none'
       }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.125rem 1.25rem', borderBottom: `1px solid ${BORDER}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <span style={{ color: GOLD, fontWeight: 700, letterSpacing: '0.08em', fontSize: '1rem' }}>YOUR CART</span>
@@ -727,49 +728,77 @@ export default function Shop() {
               <span style={{ background: GOLD, color: BG, padding: '0.1rem 0.5rem', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>{cartCount}</span>
             )}
           </div>
-          <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', color: MUTED, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1, padding: '0.2rem 0.4rem' }}>×</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {cart.length > 0 && (
+              <button onClick={() => setCart([])} style={{ background: 'none', border: 'none', color: MUTED, fontSize: '0.7rem', cursor: 'pointer', letterSpacing: '0.05em', textDecoration: 'underline', textUnderlineOffset: 2, fontFamily: 'inherit' }}>
+                Clear all
+              </button>
+            )}
+            <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', color: MUTED, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1, padding: '0.2rem 0.4rem', transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = TEXT)} onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>×</button>
+          </div>
+        </div>
+
+        {/* Free shipping banner — fixed, doesn't scroll */}
+        <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: `1px solid rgba(201,169,97,0.2)`, padding: '0.45rem 1.25rem', textAlign: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $150</span>
         </div>
 
         <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
-          <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: `1px solid rgba(201,169,97,0.2)`, padding: '0.45rem 1.25rem', textAlign: 'center' }}>
-            <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $150</span>
-          </div>
           {!cart.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: MUTED, textAlign: 'center', gap: '0.875rem' }}>
-              <span style={{ fontSize: '2.75rem', opacity: 0.4 }}>🛹</span>
-              <p style={{ fontSize: '0.9rem', letterSpacing: '0.06em' }}>YOUR CART IS EMPTY</p>
-              <button onClick={() => setIsCartOpen(false)} style={{ padding: '0.7rem 1.5rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem', letterSpacing: '0.06em', fontFamily: 'inherit' }}>CONTINUE SHOPPING</button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: MUTED, textAlign: 'center', gap: '1rem', padding: '2rem' }}>
+              <div style={{ fontSize: '4rem', opacity: 0.15, lineHeight: 1 }}>🛹</div>
+              <div>
+                <p style={{ fontSize: '0.95rem', letterSpacing: '0.08em', fontWeight: 700, color: TEXT, margin: '0 0 0.4rem' }}>YOUR CART IS EMPTY</p>
+                <p style={{ fontSize: '0.78rem', color: MUTED, margin: 0 }}>Add some gear to get started</p>
+              </div>
+              <button onClick={() => setIsCartOpen(false)} style={{ padding: '0.7rem 1.75rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', letterSpacing: '0.08em', fontFamily: 'inherit', marginTop: '0.5rem' }}>SHOP NOW</button>
             </div>
           ) : (
             cart.map(item => (
-              <div key={item.variantId} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.75rem', background: BG3, borderRadius: 8, marginBottom: '0.5rem', border: `1px solid ${BORDER}` }}>
-                <div style={{ width: 60, height: 60, borderRadius: 6, overflow: 'hidden', background: BG, flexShrink: 0, border: `1px solid ${BORDER}` }}>
+              <div key={item.variantId} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start', padding: '0.875rem', background: BG3, borderRadius: 10, marginBottom: '0.625rem', border: `1px solid ${BORDER}` }}>
+                {/* Product image */}
+                <div style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', background: BG, flexShrink: 0, border: `1px solid ${BORDER}` }}>
                   {item.image
                     ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>🛹</div>
+                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>🛹</div>
                   }
                 </div>
+                {/* Details */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {item.vendor && <p style={{ margin: '0 0 0.1rem', color: GOLD, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>{item.vendor}</p>}
-                  <p style={{ margin: '0 0 0.2rem', color: TEXT, fontSize: '0.85rem', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</p>
+                  {item.vendor && <p style={{ margin: '0 0 0.15rem', color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{item.vendor}</p>}
+                  <p style={{ margin: '0 0 0.2rem', color: TEXT, fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
                   {item.variantTitle && item.variantTitle !== 'Default Title' && (
-                    <p style={{ margin: '0 0 0.4rem', color: MUTED, fontSize: '0.72rem' }}>{item.variantTitle}</p>
+                    <p style={{ margin: '0 0 0.5rem', color: MUTED, fontSize: '0.7rem' }}>{item.variantTitle}</p>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <button className="qty-btn" onClick={() => updateQty(item.variantId, -1)} style={{ width: 28, height: 28, background: '#222', border: `1px solid ${BORDER}`, color: TEXT, borderRadius: 4, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                      <span style={{ minWidth: 22, textAlign: 'center', fontWeight: 600, color: TEXT, fontSize: '0.875rem' }}>{item.quantity}</span>
-                      <button className="qty-btn" onClick={() => updateQty(item.variantId, 1)} style={{ width: 28, height: 28, background: '#222', border: `1px solid ${BORDER}`, color: TEXT, borderRadius: 4, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem' }}>
+                    {/* Qty stepper */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0', background: '#1a1a1a', border: `1px solid ${BORDER}`, borderRadius: 6, overflow: 'hidden' }}>
+                      <button className="qty-btn" onClick={() => updateQty(item.variantId, -1)} style={{ width: 30, height: 28, background: 'none', border: 'none', color: TEXT, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                      <span style={{ minWidth: 28, textAlign: 'center', fontWeight: 700, color: TEXT, fontSize: '0.85rem', borderLeft: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}`, lineHeight: '28px' }}>{item.quantity}</span>
+                      <button className="qty-btn" onClick={() => updateQty(item.variantId, 1)} style={{ width: 30, height: 28, background: 'none', border: 'none', color: TEXT, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
                     </div>
-                    <span style={{ color: GOLD, fontWeight: 700, fontSize: '0.875rem' }}>${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                    {/* Price */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: GOLD, fontWeight: 700, fontSize: '0.9rem' }}>${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
+                      {item.quantity > 1 && <div style={{ color: MUTED, fontSize: '0.65rem' }}>${parseFloat(item.price).toFixed(2)} each</div>}
+                    </div>
                   </div>
                   {/truck/i.test(item.title + ' ' + (item.productType || '')) && item.quantity % 2 !== 0 && (
-                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.7rem', color: '#f5a623', background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.3)', borderRadius: 4, padding: '0.25rem 0.4rem', lineHeight: 1.4 }}>
+                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: '#f5a623', background: 'rgba(245,166,35,0.08)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 5, padding: '0.3rem 0.5rem', lineHeight: 1.4 }}>
                       🛹 A quantity of <strong>2</strong> trucks is required for a complete board.
                     </p>
                   )}
                 </div>
-                <button className="cart-remove" onClick={() => removeFromCart(item.variantId)} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '1.2rem', padding: '0.1rem 0.3rem', flexShrink: 0, transition: 'color 0.15s' }}>×</button>
+                {/* Remove button — trash icon */}
+                <button className="cart-remove" onClick={() => removeFromCart(item.variantId)}
+                  title="Remove item"
+                  style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '0.25rem', flexShrink: 0, transition: 'color 0.15s', lineHeight: 1 }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')} onMouseLeave={e => (e.currentTarget.style.color = '#444')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                </button>
               </div>
             ))
           )}
