@@ -329,7 +329,7 @@ export default function Home() {
         <div className="tagline now-open reveal reveal-delay-1">
           <span>📍 SOLDOTNA, ALASKA</span>
           <span className="slash">/</span>
-          <span className="open-badge">NOW OPEN</span>
+          <span className="open-badge">MON–SAT 10AM–7PM</span>
         </div>
 
         <p className="store-location reveal reveal-delay-2">Peninsula Center Mall • Suite 48C</p>

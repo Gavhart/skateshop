@@ -90,14 +90,14 @@ function Layout() {
         <div className="footer-content">
           <div className="footer-brand">
             <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
-            <p>Peninsula Center Mall<br />Suite 48C • Soldotna, AK<br />Now Open</p>
+            <p>Peninsula Center Mall<br />Suite 48C • Soldotna, AK<br />Mon–Sat: 10AM–7PM</p>
           </div>
           <div className="footer-links">
             <a href="https://instagram.com/hartboysskateshop">INSTAGRAM</a>
             <a href="https://facebook.com/hartboysskateshop">FACEBOOK</a>
           </div>
         </div>
-        <p className="copyright">© 2025 HART BOYS SKATE SHOP • NOW OPEN</p>
+        <p className="copyright">© 2025 HART BOYS SKATE SHOP • MON–SAT 10AM–7PM</p>
       </footer>
     </div>
   )

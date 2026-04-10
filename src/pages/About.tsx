@@ -627,7 +627,7 @@ function About() {
 
       {/* ── Info + CTA ── */}
       <section className="about-info-wrap">
-        <h2>Now Open in Soldotna</h2>
+        <h2>Open in Soldotna</h2>
         <p className="about-info-lead">
           Whether you're stepping on a board for the first time or looking to level up your tricks,
           we got you. Gear, guidance, and a genuine love for the sport — that's what you'll find at Hart Boys.
@@ -665,12 +665,6 @@ function About() {
             </div>
             <div className="about-card-body">
               <div className="about-hours-block">
-                <span className="about-season winter">Winter</span>
-                <p>Mon – Sat: 11:00 AM – 6:00 PM</p>
-                <p>Sunday: Closed</p>
-              </div>
-              <div className="about-hours-block">
-                <span className="about-season summer">Summer</span>
                 <p>Mon – Sat: 10:00 AM – 7:00 PM</p>
                 <p>Sunday: Closed</p>
               </div>
