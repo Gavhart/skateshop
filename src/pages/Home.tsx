@@ -263,6 +263,13 @@ export default function Home() {
     'SOLDOTNA\'S SKATE HQ',
     'RIDE WHAT YOU LOVE',
     'LOCAL SHOP. REAL SKATERS.',
+    'GEAR UP & SHRED ON',
+    'SKATE HARD. SHOP LOCAL.',
+    'DECKS, WHEELS & MORE',
+    'FRESH GEAR DROPPING DAILY',
+    'SKATE CLASSES AVAILABLE',
+    'Alaska\'s #1 Skate Shop',
+    'SOLDOTNA, AK • PENINSULA CENTER',
   ]
   const [headlineIdx, setHeadlineIdx] = useState(0)
   const [headlineFading, setHeadlineFading] = useState(false)
