@@ -82,59 +82,122 @@ function KonamiOverlay({ onDone }: { onDone: () => void }) {
   )
 }
 
+const SPARKS = Array.from({ length: 10 }, (_, i) => ({
+  id: i,
+  angle: -30 - Math.random() * 120,
+  dist: 18 + Math.random() * 28,
+  delay: Math.random() * 0.25,
+  size: 2 + Math.random() * 3,
+}))
+
 function SkateOverlay({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 3000)
+    const t = setTimeout(onDone, 4000)
     return () => clearTimeout(t)
   }, [onDone])
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
       <style>{`
-        @keyframes skateBoard {
-          0%   { transform: translateX(-120px) translateY(0) rotate(-8deg); opacity: 0; }
-          8%   { opacity: 1; }
-          40%  { transform: translateX(40vw) translateY(-60px) rotate(0deg); }
-          60%  { transform: translateX(60vw) translateY(-60px) rotate(0deg); }
-          92%  { opacity: 1; }
-          100% { transform: translateX(110vw) translateY(0) rotate(8deg); opacity: 0; }
+        @keyframes railIn {
+          0%   { clip-path: inset(0 100% 0 0); opacity: 0.6; }
+          18%  { clip-path: inset(0 0% 0 0);   opacity: 1; }
+          78%  { opacity: 1; }
+          100% { opacity: 0; }
         }
-        @keyframes skateWord {
-          0%   { opacity: 0; transform: translateY(8px); }
-          15%  { opacity: 1; transform: translateY(0); }
-          75%  { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-8px); }
+        @keyframes grindBoard {
+          0%   { left: -80px;   opacity: 0; transform: rotate(-18deg) scaleX(-1); }
+          10%  { left: -20px;   opacity: 1; transform: rotate(-5deg)  scaleX(-1); }
+          18%  { left: 4vw;     opacity: 1; transform: rotate(10deg)  scaleX(-1); }
+          22%  { left: 8vw;     transform: rotate(8deg) scaleX(-1); }
+          75%  { left: 88vw;    opacity: 1; transform: rotate(8deg) scaleX(-1); }
+          82%  { left: 96vw;    opacity: 1; transform: rotate(18deg) scaleX(-1); }
+          100% { left: 110vw;   opacity: 0; transform: rotate(25deg) scaleX(-1); }
+        }
+        @keyframes grindWobble {
+          0%,100% { margin-top: 0px; }
+          25%     { margin-top: -2px; }
+          50%     { margin-top: 1px; }
+          75%     { margin-top: -1px; }
+        }
+        @keyframes sparkFly {
+          0%   { transform: translate(0,0) scale(1); opacity: 1; }
+          100% { transform: translate(var(--sx), var(--sy)) scale(0); opacity: 0; }
+        }
+        @keyframes sparkLoop {
+          0%,100% { opacity: 1; }
+          50%     { opacity: 0.6; }
+        }
+        @keyframes grindWord {
+          0%   { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          20%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+          75%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        @keyframes grindGlow {
+          0%,100% { box-shadow: 0 0 6px 1px #c9a96155; }
+          50%     { box-shadow: 0 0 18px 4px #c9a961aa; }
         }
       `}</style>
 
-      {/* Sliding board */}
+      {/* Rail */}
       <div style={{
         position: 'absolute',
-        bottom: '18%',
+        bottom: '22%',
         left: 0,
-        fontSize: '3.5rem',
-        animation: 'skateBoard 3s cubic-bezier(0.4,0,0.2,1) forwards',
+        right: 0,
+        height: 6,
+        background: 'linear-gradient(90deg, transparent 0%, #888 8%, #ccc 30%, #bbb 70%, #888 92%, transparent 100%)',
+        borderRadius: 3,
+        animation: 'railIn 4s ease forwards, grindGlow 0.3s ease infinite',
+      }} />
+
+      {/* Skateboard */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'calc(22% - 4px)',
+        fontSize: '2.6rem',
+        lineHeight: 1,
+        animation: 'grindBoard 4s cubic-bezier(0.22,1,0.36,1) forwards',
       }}>
-        🛹
+        <div style={{ animation: 'grindWobble 0.18s linear infinite' }}>🛹</div>
+
+        {/* Sparks at contact point */}
+        {SPARKS.map(s => (
+          <div key={s.id} style={{
+            position: 'absolute',
+            bottom: 4,
+            left: '50%',
+            width: s.size,
+            height: s.size,
+            borderRadius: '50%',
+            background: '#f5c842',
+            // @ts-ignore
+            '--sx': `${Math.cos(s.angle * Math.PI / 180) * s.dist}px`,
+            '--sy': `${Math.sin(s.angle * Math.PI / 180) * s.dist}px`,
+            animation: `sparkFly 0.35s ease-out ${s.delay}s infinite`,
+          }} />
+        ))}
       </div>
 
-      {/* Word pop */}
+      {/* "SHRED IT" label */}
       <div style={{
         position: 'absolute',
-        bottom: '24%',
+        bottom: 'calc(22% + 52px)',
         left: '50%',
-        transform: 'translateX(-50%)',
-        animation: 'skateWord 3s ease forwards',
-        textAlign: 'center',
+        animation: 'grindWord 4s ease forwards',
         whiteSpace: 'nowrap',
+        textAlign: 'center',
       }}>
         <div style={{
-          fontSize: 'clamp(1.8rem, 6vw, 3rem)',
+          fontSize: 'clamp(1.6rem, 5vw, 2.8rem)',
           fontWeight: 900,
           color: '#c9a961',
           letterSpacing: '0.15em',
-          textShadow: '0 0 30px #c9a96166',
-        }}>SHRED IT 🤘</div>
+          textShadow: '0 0 30px #c9a96188',
+        }}>
+          SHRED IT 🤘
+        </div>
       </div>
     </div>
   )
