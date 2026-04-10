@@ -77,6 +77,7 @@ export default function BuildABoard() {
   const [selections, setSelections] = useState<Selections>({})
   const [added, setAdded] = useState(false)
   const [search, setSearch] = useState('')
+  const [buildAndShip, setBuildAndShip] = useState(false)
 
   useEffect(() => {
     getProducts().then(prods => {
@@ -151,6 +152,9 @@ export default function BuildABoard() {
     }
 
     localStorage.setItem('hb_cart', JSON.stringify(merged))
+    if (buildAndShip) {
+      localStorage.setItem('hb_order_note', '🛹 Please assemble and ship this board complete.')
+    }
     setAdded(true)
     setTimeout(() => navigate('/shop?open_cart=1'), 900)
   }
@@ -167,6 +171,7 @@ export default function BuildABoard() {
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingTop: 90, paddingBottom: 80 }}>
       <style>{`
+        @keyframes babCardIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
         .bab-card { transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer; }
         .bab-card:hover { border-color: ${GOLD} !important; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
         .bab-card.selected { border-color: ${GOLD} !important; box-shadow: 0 0 0 1px ${GOLD}, 0 6px 24px rgba(201,169,97,0.15); }
@@ -175,6 +180,7 @@ export default function BuildABoard() {
         .next-btn:hover { filter: brightness(1.1); }
         .skip-link { transition: color 0.15s; }
         .skip-link:hover { color: ${TEXT} !important; }
+        .assembly-check:hover { border-color: ${GOLD} !important; }
       `}</style>
 
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '0 1.25rem' }}>
@@ -317,9 +323,9 @@ export default function BuildABoard() {
                   const selected = isSelectedInStep(p, currentStep.id)
                   return (
                     <div key={p.id}
-                      className={`bab-card${selected ? ' selected' : ''} reveal reveal-delay-${(idx % 4) + 1}`}
+                      className={`bab-card${selected ? ' selected' : ''}`}
                       onClick={() => toggle(p)}
-                      style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}
+                      style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer', animation: `babCardIn 0.3s ease ${(idx % 6) * 0.05}s both` }}
                     >
                       <div style={{ aspectRatio: '1', background: BG3, position: 'relative', overflow: 'hidden' }}>
                         {img
@@ -444,6 +450,33 @@ export default function BuildABoard() {
                       Add ${(150 - totalPrice).toFixed(2)} more for free shipping
                     </p>
                   )}
+                  {/* Build & Ship Complete checkbox */}
+                  <label className="assembly-check" onClick={() => setBuildAndShip(b => !b)} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                    background: buildAndShip ? 'rgba(201,169,97,0.08)' : BG3,
+                    border: `1.5px solid ${buildAndShip ? GOLD : BORDER}`,
+                    borderRadius: 8, padding: '0.75rem', marginBottom: '1rem',
+                    cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s',
+                  }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                      border: `2px solid ${buildAndShip ? GOLD : MUTED}`,
+                      background: buildAndShip ? GOLD : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'background 0.15s, border-color 0.15s',
+                    }}>
+                      {buildAndShip && <span style={{ color: BG, fontSize: '0.65rem', fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                    </div>
+                    <div>
+                      <p style={{ margin: '0 0 0.2rem', color: TEXT, fontSize: '0.82rem', fontWeight: 700 }}>
+                        🛹 Build &amp; Ship Complete <span style={{ color: GREEN, fontSize: '0.7rem', fontWeight: 600 }}>FREE</span>
+                      </p>
+                      <p style={{ margin: 0, color: MUTED, fontSize: '0.72rem', lineHeight: 1.5 }}>
+                        Check this and we'll assemble your board and ship it ready to skate — no extra charge.
+                      </p>
+                    </div>
+                  </label>
+
                   <button onClick={addAllToCart} disabled={added}
                     style={{
                       width: '100%', padding: '0.9rem', background: added ? '#1a3a1a' : GOLD,

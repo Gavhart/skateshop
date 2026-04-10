@@ -118,7 +118,13 @@ export default function Shop() {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [orderNote, setOrderNote] = useState('')
+  const [orderNote, setOrderNote] = useState(() => {
+    try {
+      const note = localStorage.getItem('hb_order_note') || ''
+      if (note) localStorage.removeItem('hb_order_note')
+      return note
+    } catch { return '' }
+  })
   const [addedProduct, setAddedProduct] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
   const [modalImageIdx, setModalImageIdx] = useState(0)
