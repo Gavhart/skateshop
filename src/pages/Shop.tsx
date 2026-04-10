@@ -125,8 +125,8 @@ export default function Shop() {
   const searchRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Re-run scroll reveal whenever products load or page/recently-viewed changes
-  useScrollReveal([products, page, recentlyViewed])
+  // Re-run scroll reveal whenever products load or page changes
+  useScrollReveal([products, page])
 
   // Persist cart to localStorage so items survive page navigation
   useEffect(() => {
@@ -1253,8 +1253,8 @@ export default function Shop() {
 
           {/* ── RECENTLY VIEWED ── */}
           {recentlyViewed.length > 0 && (
-            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${BORDER}` }}>
-              <div className="reveal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${BORDER}`, animation: 'fadeUp 0.4s ease' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', color: MUTED, textTransform: 'uppercase' }}>🕐 Recently Viewed</span>
                 <div style={{ flex: 1, height: 1, background: BORDER }} />
                 <button
@@ -1274,11 +1274,11 @@ export default function Shop() {
                   return (
                     <div key={p.id}
                       onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
-                      className={`reveal reveal-scale reveal-delay-${(i % 4) + 1}`}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
                         overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
+                        animation: `fadeUp 0.35s ease ${i * 0.06}s both`,
                       }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = GOLD; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.transform = '' }}
