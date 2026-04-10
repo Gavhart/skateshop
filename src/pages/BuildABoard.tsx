@@ -21,6 +21,8 @@ const STEPS = [
     description: 'The foundation of your setup',
     keywords: ['deck'],
     tip: 'Deck width is measured in inches. Most skaters ride 8.0"–8.5". Wider = more stability, narrower = easier flip tricks.',
+    qty: 1,
+    multiSelect: false,
   },
   {
     id: 'trucks',
@@ -28,8 +30,9 @@ const STEPS = [
     icon: '⚙️',
     description: 'Controls your turning & stability',
     keywords: ['truck'],
-    tip: 'Match truck width to your deck width. You need 2 trucks per board — we\'ll add them automatically.',
+    tip: "Match truck width to your deck width. You need 2 trucks per board — we'll add them automatically.",
     qty: 2,
+    multiSelect: false,
   },
   {
     id: 'wheels',
@@ -38,6 +41,8 @@ const STEPS = [
     description: 'Ride quality, speed & style',
     keywords: ['wheel'],
     tip: 'Smaller wheels (50–54mm) are great for street. Larger (55mm+) are better for cruising or transition.',
+    qty: 1,
+    multiSelect: false,
   },
   {
     id: 'hardware',
@@ -45,9 +50,14 @@ const STEPS = [
     icon: '🔩',
     description: 'Bearings, griptape, bolts & more',
     keywords: ['bearing', 'hardware', 'grip', 'bolt', 'griptape'],
-    tip: 'Don\'t forget bearings (2 per wheel = 8 total) and hardware bolts to mount your trucks to your deck.',
+    tip: "Pick as many as you need — bearings, griptape, and hardware bolts all go on the same board.",
+    qty: 1,
+    multiSelect: true,
   },
 ]
+
+// selections is Record<stepId, product[]>
+type Selections = Record<string, any[]>
 
 function getStepProducts(products: any[], step: typeof STEPS[0]) {
   return products.filter(p => {
@@ -61,7 +71,7 @@ export default function BuildABoard() {
   const [step, setStep] = useState(0)
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selections, setSelections] = useState<Record<string, any>>({})
+  const [selections, setSelections] = useState<Selections>({})
   const [added, setAdded] = useState(false)
 
   useEffect(() => {
@@ -74,31 +84,53 @@ export default function BuildABoard() {
   const currentStep = STEPS[step]
   const isReview = step === STEPS.length
   const stepProducts = currentStep ? getStepProducts(products, currentStep) : []
-  const selectedCount = Object.keys(selections).length
 
-  const select = (product: any) => {
-    setSelections(prev => ({ ...prev, [currentStep.id]: product }))
+  // Total items selected across all steps
+  const totalSelectedItems = Object.values(selections).reduce((n, arr) => n + arr.length, 0)
+
+  const isSelectedInStep = (product: any, stepId: string) =>
+    (selections[stepId] ?? []).some((p: any) => p.id === product.id)
+
+  const toggle = (product: any) => {
+    const stepId = currentStep.id
+    const current = selections[stepId] ?? []
+    if (currentStep.multiSelect) {
+      // Toggle in/out of array
+      const alreadyIn = current.some((p: any) => p.id === product.id)
+      setSelections(prev => ({
+        ...prev,
+        [stepId]: alreadyIn ? current.filter((p: any) => p.id !== product.id) : [...current, product]
+      }))
+    } else {
+      // Single select — replace
+      setSelections(prev => ({ ...prev, [stepId]: [product] }))
+    }
   }
+
+  const stepSelectionCount = (stepId: string) => (selections[stepId] ?? []).length
 
   const addAllToCart = () => {
     const existing: any[] = (() => {
       try { return JSON.parse(localStorage.getItem('hb_cart') || '[]') } catch { return [] }
     })()
 
-    const newItems = Object.entries(selections).map(([stepId, product]: [string, any]) => {
-      const variant = product.variants.edges[0]?.node
+    const newItems: any[] = []
+    for (const [stepId, products] of Object.entries(selections)) {
       const stepDef = STEPS.find(s => s.id === stepId)
-      return {
-        variantId: variant?.id,
-        title: product.title,
-        vendor: product.vendor,
-        price: product.priceRange.minVariantPrice.amount,
-        image: product.images.edges[0]?.node.url || '',
-        variantTitle: variant?.title === 'Default Title' ? '' : (variant?.title || ''),
-        productType: product.productType,
-        quantity: stepDef?.qty ?? 1,
+      for (const product of products) {
+        const variant = product.variants.edges[0]?.node
+        newItems.push({
+          variantId: variant?.id,
+          title: product.title,
+          vendor: product.vendor,
+          price: product.priceRange.minVariantPrice.amount,
+          image: product.images.edges[0]?.node.url || '',
+          variantTitle: variant?.title === 'Default Title' ? '' : (variant?.title || ''),
+          productType: product.productType,
+          quantity: stepDef?.qty ?? 1,
+        })
       }
-    })
+    }
 
     const merged = [...existing]
     for (const item of newItems) {
@@ -112,11 +144,14 @@ export default function BuildABoard() {
     setTimeout(() => navigate('/shop?open_cart=1'), 900)
   }
 
-  const totalPrice = Object.values(selections).reduce((sum: number, p: any) => {
-    const stepId = Object.entries(selections).find(([, v]) => v === p)?.[0]
+  const totalPrice = Object.entries(selections).reduce((sum, [stepId, prods]) => {
     const stepDef = STEPS.find(s => s.id === stepId)
-    return sum + parseFloat(p.priceRange.minVariantPrice.amount) * (stepDef?.qty ?? 1)
+    return sum + prods.reduce((s, p) =>
+      s + parseFloat(p.priceRange.minVariantPrice.amount) * (stepDef?.qty ?? 1), 0)
   }, 0)
+
+  // Can always advance — just show skip if nothing selected
+  const canAdvance = true
 
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingTop: 90, paddingBottom: 80 }}>
@@ -124,16 +159,16 @@ export default function BuildABoard() {
         .bab-card { transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer; }
         .bab-card:hover { border-color: ${GOLD} !important; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
         .bab-card.selected { border-color: ${GOLD} !important; box-shadow: 0 0 0 1px ${GOLD}, 0 6px 24px rgba(201,169,97,0.15); }
-        .step-dot { transition: background 0.2s, border-color 0.2s; }
-        .next-btn { transition: background 0.2s, opacity 0.2s; }
-        .next-btn:hover:not(:disabled) { background: #d4b06a !important; }
-        .skip-btn { transition: color 0.2s; }
-        .skip-btn:hover { color: ${TEXT} !important; }
+        .step-dot { transition: background 0.2s, border-color 0.2s; cursor: pointer; }
+        .next-btn { transition: background 0.2s; }
+        .next-btn:hover { filter: brightness(1.1); }
+        .skip-link { transition: color 0.15s; }
+        .skip-link:hover { color: ${TEXT} !important; }
       `}</style>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 1.25rem' }}>
+      <div style={{ maxWidth: 920, margin: '0 auto', padding: '0 1.25rem' }}>
 
-        {/* ── HEADER ── */}
+        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <p style={{ color: GOLD, fontSize: '0.72rem', letterSpacing: '0.2em', fontWeight: 700, marginBottom: '0.5rem' }}>HART BOYS SKATE SHOP</p>
           <h1 style={{ color: TEXT, fontSize: 'clamp(1.8rem, 4vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 0.75rem' }}>
@@ -144,106 +179,107 @@ export default function BuildABoard() {
           </p>
         </div>
 
-        {/* ── STEP PROGRESS ── */}
+        {/* Step progress */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2.5rem', gap: 0 }}>
           {STEPS.map((s, i) => {
-            const done = selections[s.id] != null
+            const count = stepSelectionCount(s.id)
+            const done = count > 0
             const active = i === step && !isReview
             return (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                  <button
-                    className="step-dot"
-                    onClick={() => !isReview && setStep(i)}
-                    style={{
-                      width: 44, height: 44, borderRadius: '50%', border: `2px solid ${active ? GOLD : done ? GREEN : BORDER}`,
-                      background: active ? GOLD2 : done ? 'rgba(74,222,128,0.1)' : BG2,
-                      color: active ? GOLD : done ? GREEN : MUTED,
-                      fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
+                  <button className="step-dot" onClick={() => !isReview && setStep(i)} style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    border: `2px solid ${active ? GOLD : done ? GREEN : BORDER}`,
+                    background: active ? GOLD2 : done ? 'rgba(74,222,128,0.1)' : BG2,
+                    color: active ? GOLD : done ? GREEN : MUTED,
+                    fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative',
+                  }}>
                     {done && !active ? '✓' : s.icon}
+                    {done && count > 1 && (
+                      <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, background: GOLD, borderRadius: '50%', fontSize: '0.55rem', color: BG, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{count}</span>
+                    )}
                   </button>
-                  <span style={{ fontSize: '0.65rem', color: active ? GOLD : done ? GREEN : MUTED, letterSpacing: '0.08em', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.62rem', color: active ? GOLD : done ? GREEN : MUTED, letterSpacing: '0.08em', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {s.label.toUpperCase()}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div style={{ width: 'clamp(24px, 6vw, 64px)', height: 2, background: selections[STEPS[i].id] ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
+                  <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: done ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
                 )}
               </div>
             )
           })}
           {/* Review dot */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: 'clamp(24px, 6vw, 64px)', height: 2, background: isReview ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
+            <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: isReview ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${isReview ? GOLD : BORDER}`, background: isReview ? GOLD2 : BG2, color: isReview ? GOLD : MUTED, fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛒</div>
-              <span style={{ fontSize: '0.65rem', color: isReview ? GOLD : MUTED, letterSpacing: '0.08em', fontWeight: isReview ? 700 : 400 }}>REVIEW</span>
+              <button className="step-dot" onClick={() => setStep(STEPS.length)} style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${isReview ? GOLD : BORDER}`, background: isReview ? GOLD2 : BG2, color: isReview ? GOLD : MUTED, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛒</button>
+              <span style={{ fontSize: '0.62rem', color: isReview ? GOLD : MUTED, letterSpacing: '0.08em', fontWeight: isReview ? 700 : 400 }}>REVIEW</span>
             </div>
           </div>
         </div>
 
-        {/* ── STEP CONTENT ── */}
+        {/* Step content */}
         {!isReview ? (
           <div>
             {/* Step header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
-                <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.25rem', letterSpacing: '-0.01em' }}>
+                <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.2rem', letterSpacing: '-0.01em' }}>
                   {currentStep.icon} Step {step + 1}: Choose Your {currentStep.label}
                 </h2>
-                <p style={{ color: MUTED, fontSize: '0.82rem', margin: 0 }}>{currentStep.description}</p>
+                <p style={{ color: MUTED, fontSize: '0.82rem', margin: 0 }}>
+                  {currentStep.description}
+                  {currentStep.multiSelect && <span style={{ color: GOLD, marginLeft: '0.4rem' }}>— pick as many as you need</span>}
+                </p>
               </div>
-              {selections[currentStep.id] && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '0.4rem 0.75rem' }}>
-                  <span style={{ color: GREEN, fontSize: '0.75rem', fontWeight: 700 }}>✓ Selected</span>
+              {stepSelectionCount(currentStep.id) > 0 && (
+                <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ color: GREEN, fontSize: '0.75rem', fontWeight: 700 }}>
+                    ✓ {stepSelectionCount(currentStep.id)} selected
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Pro tip */}
-            <div style={{ background: GOLD2, border: `1px solid rgba(201,169,97,0.2)`, borderRadius: 8, padding: '0.6rem 0.875rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: '0.8rem' }}>💡</span>
-              <p style={{ color: MUTED, fontSize: '0.75rem', margin: 0, lineHeight: 1.5 }}><strong style={{ color: GOLD }}>Pro tip:</strong> {currentStep.tip}</p>
+            <div style={{ background: GOLD2, border: `1px solid rgba(201,169,97,0.2)`, borderRadius: 8, padding: '0.55rem 0.875rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '0.8rem', flexShrink: 0 }}>💡</span>
+              <p style={{ color: MUTED, fontSize: '0.75rem', margin: 0, lineHeight: 1.5 }}>
+                <strong style={{ color: GOLD }}>Pro tip:</strong> {currentStep.tip}
+              </p>
             </div>
 
-            {/* Product grid */}
+            {/* Products */}
             {loading ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>Loading products...</div>
             ) : stepProducts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>
-                <p style={{ fontSize: '2rem', marginBottom: '0.75rem', opacity: 0.3 }}>😅</p>
-                <p>No {currentStep.label.toLowerCase()} in stock right now.</p>
-                <button className="skip-btn" onClick={() => setStep(s => s + 1)} style={{ marginTop: '1rem', background: 'none', border: `1px solid ${BORDER}`, color: MUTED, padding: '0.5rem 1.25rem', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem' }}>
-                  Skip this step →
-                </button>
+              <div style={{ textAlign: 'center', padding: '3rem', color: MUTED, background: BG2, borderRadius: 10, border: `1px dashed ${BORDER}` }}>
+                <p style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.3 }}>😅</p>
+                <p style={{ marginBottom: '1rem' }}>No {currentStep.label.toLowerCase()} in stock right now.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
                 {stepProducts.map(p => {
                   const img = p.images.edges[0]?.node.url
                   const price = p.priceRange.minVariantPrice.amount
-                  const isSelected = selections[currentStep.id]?.id === p.id
+                  const selected = isSelectedInStep(p, currentStep.id)
                   const inStock = p.variants.edges.some((v: any) => v.node.availableForSale)
                   return (
-                    <div
-                      key={p.id}
-                      className={`bab-card${isSelected ? ' selected' : ''}`}
-                      onClick={() => inStock && select(p)}
-                      style={{
-                        background: BG2, border: `1.5px solid ${isSelected ? GOLD : BORDER}`,
-                        borderRadius: 10, overflow: 'hidden', opacity: inStock ? 1 : 0.45,
-                        cursor: inStock ? 'pointer' : 'not-allowed',
-                      }}
+                    <div key={p.id}
+                      className={`bab-card${selected ? ' selected' : ''}`}
+                      onClick={() => inStock && toggle(p)}
+                      style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', opacity: inStock ? 1 : 0.45, cursor: inStock ? 'pointer' : 'not-allowed' }}
                     >
                       <div style={{ aspectRatio: '1', background: BG3, position: 'relative', overflow: 'hidden' }}>
                         {img
                           ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', opacity: 0.2 }}>🛹</div>
                         }
-                        {isSelected && (
-                          <div style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, background: GOLD, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: BG }}>✓</div>
+                        {selected && (
+                          <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, background: GOLD, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: BG }}>✓</div>
                         )}
                         {!inStock && (
                           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -251,8 +287,8 @@ export default function BuildABoard() {
                           </div>
                         )}
                       </div>
-                      <div style={{ padding: '0.625rem' }}>
-                        {p.vendor && <p style={{ margin: '0 0 0.15rem', color: GOLD, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>}
+                      <div style={{ padding: '0.6rem' }}>
+                        {p.vendor && <p style={{ margin: '0 0 0.1rem', color: GOLD, fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>}
                         <p style={{ margin: '0 0 0.3rem', color: TEXT, fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.title}</p>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ color: GOLD, fontWeight: 700, fontSize: '0.82rem' }}>${parseFloat(price).toFixed(2)}</span>
@@ -265,24 +301,25 @@ export default function BuildABoard() {
               </div>
             )}
 
-            {/* Navigation buttons */}
+            {/* Navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: `1px solid ${BORDER}` }}>
               <button onClick={() => setStep(s => s - 1)} disabled={step === 0}
-                style={{ padding: '0.6rem 1.25rem', background: 'none', border: `1px solid ${BORDER}`, color: step === 0 ? BORDER : MUTED, borderRadius: 6, cursor: step === 0 ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: '0.85rem', transition: 'border-color 0.2s, color 0.2s' }}>
+                style={{ padding: '0.6rem 1.25rem', background: 'none', border: `1px solid ${step === 0 ? '#1a1a1a' : BORDER}`, color: step === 0 ? '#2a2a2a' : MUTED, borderRadius: 6, cursor: step === 0 ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: '0.85rem' }}>
                 ← Back
               </button>
               <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                {!selections[currentStep.id] && (
-                  <button className="skip-btn" onClick={() => setStep(s => s + 1)}
-                    style={{ padding: '0.6rem 1rem', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                {stepSelectionCount(currentStep.id) === 0 && stepProducts.length > 0 && (
+                  <button className="skip-link" onClick={() => setStep(s => s + 1)}
+                    style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
                     Skip
                   </button>
                 )}
-                <button className="next-btn" onClick={() => setStep(s => s + 1)} disabled={!selections[currentStep.id] && stepProducts.length > 0}
+                <button className="next-btn" onClick={() => setStep(s => s + 1)}
                   style={{
-                    padding: '0.65rem 1.75rem', background: selections[currentStep.id] ? GOLD : '#2a2a2a',
-                    color: selections[currentStep.id] ? BG : MUTED, border: 'none', borderRadius: 6,
-                    cursor: selections[currentStep.id] ? 'pointer' : 'default', fontFamily: 'inherit',
+                    padding: '0.65rem 1.75rem',
+                    background: stepSelectionCount(currentStep.id) > 0 ? GOLD : '#2a2a2a',
+                    color: stepSelectionCount(currentStep.id) > 0 ? BG : MUTED,
+                    border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
                     fontWeight: 700, fontSize: '0.875rem', letterSpacing: '0.06em',
                   }}>
                   {step === STEPS.length - 1 ? 'Review Board →' : 'Next Step →'}
@@ -292,78 +329,97 @@ export default function BuildABoard() {
           </div>
 
         ) : (
-          /* ── REVIEW STEP ── */
+          /* Review step */
           <div>
-            <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 1.5rem', letterSpacing: '-0.01em', textAlign: 'center' }}>
-              🛒 Your Complete Board
-            </h2>
+            <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.5rem', textAlign: 'center', letterSpacing: '-0.01em' }}>🛒 Your Complete Board</h2>
+            <p style={{ color: MUTED, fontSize: '0.82rem', textAlign: 'center', marginBottom: '1.75rem' }}>
+              {totalSelectedItems === 0 ? 'No items selected yet.' : `${totalSelectedItems} item${totalSelectedItems !== 1 ? 's' : ''} ready to add`}
+            </p>
 
-            {selectedCount === 0 ? (
-              <div style={{ textAlign: 'center', color: MUTED, padding: '2rem' }}>
-                <p>You haven't selected any items yet.</p>
-                <button onClick={() => setStep(0)} style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700 }}>Start Building</button>
+            {totalSelectedItems === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: MUTED }}>
+                <button onClick={() => setStep(0)} style={{ padding: '0.7rem 1.75rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.875rem', letterSpacing: '0.06em' }}>Start Building</button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+              <>
+                {/* Per-step review */}
                 {STEPS.map(s => {
-                  const p = selections[s.id]
-                  if (!p) return (
-                    <div key={s.id} onClick={() => setStep(STEPS.indexOf(s))} style={{ background: BG2, border: `1.5px dashed ${BORDER}`, borderRadius: 10, padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'border-color 0.2s' }}>
-                      <span style={{ fontSize: '1.8rem', opacity: 0.3 }}>{s.icon}</span>
-                      <span style={{ color: MUTED, fontSize: '0.75rem', letterSpacing: '0.08em' }}>ADD {s.label.toUpperCase()}</span>
-                    </div>
-                  )
-                  const img = p.images.edges[0]?.node.url
-                  const price = parseFloat(p.priceRange.minVariantPrice.amount) * (s.qty ?? 1)
+                  const picks = selections[s.id] ?? []
                   return (
-                    <div key={s.id} style={{ background: BG2, border: `1.5px solid ${GOLD}`, borderRadius: 10, overflow: 'hidden' }}>
-                      <div style={{ aspectRatio: '1', background: BG3, position: 'relative' }}>
-                        {img ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', opacity: 0.2 }}>🛹</div>}
-                        <div style={{ position: 'absolute', top: 8, left: 8, background: BG, border: `1px solid ${BORDER}`, borderRadius: 4, padding: '0.2rem 0.45rem', fontSize: '0.6rem', color: GOLD, fontWeight: 700, letterSpacing: '0.08em' }}>{s.label.toUpperCase()}</div>
-                        <button onClick={() => setStep(STEPS.indexOf(s))} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 4, padding: '0.2rem 0.45rem', fontSize: '0.65rem', cursor: 'pointer', fontFamily: 'inherit' }}>Change</button>
+                    <div key={s.id} style={{ marginBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ color: picks.length > 0 ? GOLD : MUTED, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em' }}>
+                          {s.icon} {s.label.toUpperCase()} {picks.length > 0 ? `(${picks.length})` : ''}
+                        </span>
+                        <button onClick={() => setStep(STEPS.indexOf(s))} style={{ background: 'none', border: `1px solid ${BORDER}`, color: MUTED, fontSize: '0.68rem', padding: '0.2rem 0.6rem', borderRadius: 4, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          {picks.length > 0 ? 'Change' : 'Add'}
+                        </button>
                       </div>
-                      <div style={{ padding: '0.625rem' }}>
-                        {p.vendor && <p style={{ margin: '0 0 0.1rem', color: GOLD, fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>}
-                        <p style={{ margin: '0 0 0.3rem', color: TEXT, fontSize: '0.78rem', fontWeight: 600, lineHeight: 1.3 }}>{p.title}</p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: GOLD, fontWeight: 700, fontSize: '0.85rem' }}>${price.toFixed(2)}</span>
-                          {s.qty && s.qty > 1 && <span style={{ color: MUTED, fontSize: '0.65rem' }}>qty: {s.qty}</span>}
+                      {picks.length === 0 ? (
+                        <div style={{ background: BG2, border: `1.5px dashed ${BORDER}`, borderRadius: 8, padding: '0.875rem', textAlign: 'center', color: MUTED, fontSize: '0.78rem' }}>
+                          Nothing selected — <button onClick={() => setStep(STEPS.indexOf(s))} style={{ background: 'none', border: 'none', color: GOLD, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', textDecoration: 'underline' }}>add a {s.label.toLowerCase()}</button>
                         </div>
-                      </div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: '0.625rem' }}>
+                          {picks.map((p: any) => {
+                            const img = p.images.edges[0]?.node.url
+                            const unitPrice = parseFloat(p.priceRange.minVariantPrice.amount)
+                            const linePrice = unitPrice * (s.qty ?? 1)
+                            return (
+                              <div key={p.id} style={{ background: BG2, border: `1.5px solid ${GOLD}`, borderRadius: 8, overflow: 'hidden', display: 'flex', gap: '0.625rem', alignItems: 'center', padding: '0.5rem' }}>
+                                <div style={{ width: 48, height: 48, borderRadius: 6, overflow: 'hidden', background: BG3, flexShrink: 0 }}>
+                                  {img ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>🛹</div>}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ margin: '0 0 0.1rem', color: TEXT, fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
+                                  <p style={{ margin: 0, color: GOLD, fontSize: '0.72rem', fontWeight: 700 }}>
+                                    ${linePrice.toFixed(2)}
+                                    {s.qty && s.qty > 1 && <span style={{ color: MUTED, fontWeight: 400, fontSize: '0.62rem' }}> ×{s.qty}</span>}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
-              </div>
-            )}
 
-            {selectedCount > 0 && (
-              <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '1.25rem 1.5rem', maxWidth: 400, margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: `1px solid ${BORDER}` }}>
-                  <span style={{ color: MUTED, fontSize: '0.82rem', letterSpacing: '0.06em' }}>ESTIMATED TOTAL</span>
-                  <span style={{ color: GOLD, fontSize: '1.5rem', fontWeight: 700 }}>${totalPrice.toFixed(2)}</span>
+                {/* Total & checkout */}
+                <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '1.25rem 1.5rem', maxWidth: 420, margin: '1.5rem auto 0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: '0.75rem', marginBottom: '0.75rem', borderBottom: `1px solid ${BORDER}` }}>
+                    <span style={{ color: MUTED, fontSize: '0.82rem', letterSpacing: '0.06em' }}>ESTIMATED TOTAL</span>
+                    <span style={{ color: GOLD, fontSize: '1.5rem', fontWeight: 700 }}>${totalPrice.toFixed(2)}</span>
+                  </div>
+                  {totalPrice >= 150 && (
+                    <p style={{ color: GREEN, fontSize: '0.75rem', textAlign: 'center', margin: '0 0 0.75rem', fontWeight: 600 }}>🎉 Qualifies for FREE shipping!</p>
+                  )}
+                  {totalPrice > 0 && totalPrice < 150 && (
+                    <p style={{ color: MUTED, fontSize: '0.72rem', textAlign: 'center', margin: '0 0 0.75rem' }}>
+                      Add ${(150 - totalPrice).toFixed(2)} more for free shipping
+                    </p>
+                  )}
+                  <button onClick={addAllToCart} disabled={added}
+                    style={{
+                      width: '100%', padding: '0.9rem', background: added ? '#1a3a1a' : GOLD,
+                      color: added ? GREEN : BG, border: 'none', borderRadius: 6, fontWeight: 700,
+                      fontSize: '0.95rem', letterSpacing: '0.08em', cursor: added ? 'default' : 'pointer',
+                      fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      transition: 'background 0.3s, color 0.3s', boxShadow: added ? 'none' : `0 4px 16px rgba(201,169,97,0.25)`,
+                    }}>
+                    {added ? '✓ ADDED — HEADING TO CART...' : `ADD ALL TO CART (${totalSelectedItems} item${totalSelectedItems !== 1 ? 's' : ''})`}
+                  </button>
+                  <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.72rem', marginTop: '0.75rem' }}>🔒 Secure checkout via Shopify</p>
                 </div>
-                {totalPrice >= 150 && (
-                  <p style={{ color: GREEN, fontSize: '0.75rem', textAlign: 'center', margin: '0 0 0.75rem', fontWeight: 600 }}>🎉 Qualifies for FREE shipping!</p>
-                )}
-                <button onClick={addAllToCart} disabled={added}
-                  style={{
-                    width: '100%', padding: '0.9rem', background: added ? '#1a3a1a' : GOLD,
-                    color: added ? GREEN : BG, border: 'none', borderRadius: 6, fontWeight: 700,
-                    fontSize: '0.95rem', letterSpacing: '0.08em', cursor: added ? 'default' : 'pointer',
-                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    transition: 'background 0.3s, color 0.3s', boxShadow: added ? 'none' : `0 4px 16px rgba(201,169,97,0.25)`
-                  }}>
-                  {added ? '✓ ADDED — HEADING TO CART...' : `ADD ALL TO CART (${selectedCount} item${selectedCount !== 1 ? 's' : ''})`}
-                </button>
-                <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.72rem', marginTop: '0.75rem' }}>🔒 Secure checkout via Shopify</p>
-              </div>
-            )}
 
-            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-              <button onClick={() => setStep(0)} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                ← Start over
-              </button>
-            </div>
+                <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+                  <button onClick={() => { setStep(0); setSelections({}) }} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    ← Start over
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
