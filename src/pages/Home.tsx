@@ -333,13 +333,6 @@ export default function Home() {
           <Link to="/classes" className="btn btn-secondary">SKATE CLASSES</Link>
         </div>
 
-        {/* scroll indicator */}
-        <div className="hero-scroll-indicator" aria-hidden="true">
-          <div className="scroll-mouse">
-            <div className="scroll-dot"></div>
-          </div>
-          <span>SCROLL</span>
-        </div>
       </section>
 
       {/* ── MARQUEE ── */}
