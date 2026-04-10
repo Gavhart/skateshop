@@ -73,6 +73,7 @@ export default function BuildABoard() {
   const [loading, setLoading] = useState(true)
   const [selections, setSelections] = useState<Selections>({})
   const [added, setAdded] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     getProducts().then(prods => {
@@ -80,6 +81,9 @@ export default function BuildABoard() {
       setLoading(false)
     })
   }, [])
+
+  // Clear search whenever the step changes
+  useEffect(() => { setSearch('') }, [step])
 
   const currentStep = STEPS[step]
   const isReview = step === STEPS.length
@@ -253,16 +257,54 @@ export default function BuildABoard() {
             </div>
 
             {/* Products */}
-            {loading ? (
+            {/* Search bar */}
+            {!loading && stepProducts.length > 0 && (
+              <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={`Search ${currentStep.label.toLowerCase()}s...`}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: BG2, border: `1px solid ${BORDER}`,
+                    borderRadius: 8, color: TEXT, fontSize: '0.875rem',
+                    padding: '0.6rem 2.25rem 0.6rem 2.5rem',
+                    outline: 'none', fontFamily: 'inherit',
+                    transition: 'border-color 0.2s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = GOLD}
+                  onBlur={e => e.target.style.borderColor = BORDER}
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0.1rem 0.3rem' }}>×</button>
+                )}
+              </div>
+            )}
+
+            {(() => {
+              const filtered = search.trim()
+                ? stepProducts.filter(p => [p.title, p.vendor, p.productType].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase()))
+                : stepProducts
+              return loading ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>Loading products...</div>
             ) : stepProducts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: MUTED, background: BG2, borderRadius: 10, border: `1px dashed ${BORDER}` }}>
                 <p style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.3 }}>😅</p>
                 <p style={{ marginBottom: '1rem' }}>No {currentStep.label.toLowerCase()} in stock right now.</p>
               </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem', color: MUTED, background: BG2, borderRadius: 10, border: `1px dashed ${BORDER}` }}>
+                <p style={{ fontSize: '1.5rem', marginBottom: '0.5rem', opacity: 0.3 }}>🔍</p>
+                <p>No results for "<strong style={{ color: TEXT }}>{search}</strong>"</p>
+                <button onClick={() => setSearch('')} style={{ marginTop: '0.75rem', background: 'none', border: `1px solid ${BORDER}`, color: MUTED, padding: '0.4rem 1rem', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem' }}>Clear search</button>
+              </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
-                {stepProducts.map(p => {
+                {filtered.map(p => {
                   const img = p.images.edges[0]?.node.url
                   const price = p.priceRange.minVariantPrice.amount
                   const selected = isSelectedInStep(p, currentStep.id)
@@ -299,7 +341,8 @@ export default function BuildABoard() {
                   )
                 })}
               </div>
-            )}
+            )
+            })()}
 
             {/* Navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: `1px solid ${BORDER}` }}>
