@@ -62,7 +62,9 @@ type Selections = Record<string, any[]>
 function getStepProducts(products: any[], step: typeof STEPS[0]) {
   return products.filter(p => {
     const text = [p.title, p.productType, ...(p.tags || [])].join(' ').toLowerCase()
-    return step.keywords.some(kw => text.includes(kw))
+    const matchesStep = step.keywords.some(kw => text.includes(kw))
+    const inStock = p.variants.edges.some((v: any) => v.node.availableForSale)
+    return matchesStep && inStock
   })
 }
 
@@ -308,12 +310,11 @@ export default function BuildABoard() {
                   const img = p.images.edges[0]?.node.url
                   const price = p.priceRange.minVariantPrice.amount
                   const selected = isSelectedInStep(p, currentStep.id)
-                  const inStock = p.variants.edges.some((v: any) => v.node.availableForSale)
                   return (
                     <div key={p.id}
                       className={`bab-card${selected ? ' selected' : ''}`}
-                      onClick={() => inStock && toggle(p)}
-                      style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', opacity: inStock ? 1 : 0.45, cursor: inStock ? 'pointer' : 'not-allowed' }}
+                      onClick={() => toggle(p)}
+                      style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}
                     >
                       <div style={{ aspectRatio: '1', background: BG3, position: 'relative', overflow: 'hidden' }}>
                         {img
@@ -322,11 +323,6 @@ export default function BuildABoard() {
                         }
                         {selected && (
                           <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, background: GOLD, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: BG }}>✓</div>
-                        )}
-                        {!inStock && (
-                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ background: '#111', color: MUTED, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', padding: '0.3rem 0.6rem', borderRadius: 4, border: `1px solid ${BORDER}` }}>SOLD OUT</span>
-                          </div>
                         )}
                       </div>
                       <div style={{ padding: '0.6rem' }}>
