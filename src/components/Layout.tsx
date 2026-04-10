@@ -82,18 +82,79 @@ function KonamiOverlay({ onDone }: { onDone: () => void }) {
   )
 }
 
+function SkateOverlay({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000)
+    return () => clearTimeout(t)
+  }, [onDone])
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
+      <style>{`
+        @keyframes skateBoard {
+          0%   { transform: translateX(-120px) translateY(0) rotate(-8deg); opacity: 0; }
+          8%   { opacity: 1; }
+          40%  { transform: translateX(40vw) translateY(-60px) rotate(0deg); }
+          60%  { transform: translateX(60vw) translateY(-60px) rotate(0deg); }
+          92%  { opacity: 1; }
+          100% { transform: translateX(110vw) translateY(0) rotate(8deg); opacity: 0; }
+        }
+        @keyframes skateWord {
+          0%   { opacity: 0; transform: translateY(8px); }
+          15%  { opacity: 1; transform: translateY(0); }
+          75%  { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-8px); }
+        }
+      `}</style>
+
+      {/* Sliding board */}
+      <div style={{
+        position: 'absolute',
+        bottom: '18%',
+        left: 0,
+        fontSize: '3.5rem',
+        animation: 'skateBoard 3s cubic-bezier(0.4,0,0.2,1) forwards',
+      }}>
+        🛹
+      </div>
+
+      {/* Word pop */}
+      <div style={{
+        position: 'absolute',
+        bottom: '24%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        animation: 'skateWord 3s ease forwards',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+      }}>
+        <div style={{
+          fontSize: 'clamp(1.8rem, 6vw, 3rem)',
+          fontWeight: 900,
+          color: '#c9a961',
+          letterSpacing: '0.15em',
+          textShadow: '0 0 30px #c9a96166',
+        }}>SHRED IT 🤘</div>
+      </div>
+    </div>
+  )
+}
+
 function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [konami, setKonami] = useState(false)
+  const [skateWord, setSkateWord] = useState(false)
   const konamiProgress = useRef(0)
+  const skateBuffer = useRef('')
   const clickCount = useRef(0)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Konami code listener
+  // Konami code + "skate" word listener
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Konami
       if (e.key === KONAMI[konamiProgress.current]) {
         konamiProgress.current += 1
         if (konamiProgress.current === KONAMI.length) {
@@ -102,6 +163,17 @@ function Layout() {
         }
       } else {
         konamiProgress.current = e.key === KONAMI[0] ? 1 : 0
+      }
+
+      // "skate" typed anywhere — ignore if in an input/textarea
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key.length === 1) {
+        skateBuffer.current = (skateBuffer.current + e.key.toLowerCase()).slice(-5)
+        if (skateBuffer.current === 'skate') {
+          skateBuffer.current = ''
+          setSkateWord(true)
+        }
       }
     }
     window.addEventListener('keydown', onKey)
@@ -140,6 +212,7 @@ function Layout() {
   return (
     <div className="site">
       {konami && <KonamiOverlay onDone={() => setKonami(false)} />}
+      {skateWord && <SkateOverlay onDone={() => setSkateWord(false)} />}
 
       <nav className="navbar">
         <Link to="/" className="logo" onClick={handleLogoTap} onTouchEnd={handleLogoTap}>
