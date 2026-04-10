@@ -10,6 +10,13 @@ import { isExcluded } from '../lib/filters'
 // Types: 'drop' | 'event' | 'news' | 'class'
 const ANNOUNCEMENTS = [
   {
+    type: 'news',
+    date: 'April 2026',
+    title: 'Family Visit + A Stop at the Shop',
+    body: 'Was in the area visiting family and of course had to swing by Hart Boys. Love seeing what the guys have been building out here — the shop has a real feel to it. Good people, good product, good vibes. If you\'re ever passing through Soldotna, don\'t sleep on stopping in. Worth it every time.',
+    cta: { label: 'COME FIND US', href: 'https://maps.google.com/?q=44332+Sterling+Highway+Soldotna+AK+99669' },
+  },
+  {
     type: 'drop',
     date: 'March 2025',
     title: 'Spring Drop Just Landed',
