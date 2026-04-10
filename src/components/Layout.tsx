@@ -19,6 +19,7 @@ function Layout() {
   const navLinks = [
     { to: '/', label: 'HOME' },
     { to: '/shop', label: 'SHOP' },
+    { to: '/build', label: 'BUILD A BOARD' },
     { to: '/updates', label: 'UPDATES' },
     { to: '/about', label: 'ABOUT' },
     { to: '/classes', label: 'CLASSES' },

@@ -267,12 +267,16 @@ export default function Shop() {
   }
 
   // Detect if customer returned from a cancelled Shopify checkout
+  // OR came from Build-a-Board with ?open_cart=1
   const [checkoutCancelled, setCheckoutCancelled] = useState(false)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('checkout_cancelled') === '1') {
       setCheckoutCancelled(true)
-      // Clean the URL without reloading
+      window.history.replaceState({}, '', '/shop')
+    }
+    if (params.get('open_cart') === '1') {
+      setIsCartOpen(true)
       window.history.replaceState({}, '', '/shop')
     }
   }, [])

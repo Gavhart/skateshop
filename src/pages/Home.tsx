@@ -394,7 +394,7 @@ export default function Home() {
             <h2 className="trick-name">{weekTrick.name}</h2>
             <p className="trick-difficulty">Difficulty: {weekTrick.difficulty}</p>
             <Link to="/classes" className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.75rem 1.5rem' }}>
-              Learn with Brandon →
+              Learn with the Harts →
             </Link>
           </div>
 

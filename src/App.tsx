@@ -7,6 +7,7 @@ import Updates from './pages/Updates'
 import Waiver from './pages/Waiver'
 import Classes from './pages/Classes'
 import OrderSuccess from './pages/OrderSuccess'
+import BuildABoard from './pages/BuildABoard'
 import './App.css'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="waiver" element={<Waiver />} />
         <Route path="classes" element={<Classes />} />
         <Route path="order-success" element={<OrderSuccess />} />
+        <Route path="build" element={<BuildABoard />} />
       </Route>
     </Routes>
   )
