@@ -60,6 +60,18 @@ const STEPS = [
 // selections is Record<stepId, product[]>
 type Selections = Record<string, any[]>
 
+// Matches the free assembly/build-and-ship service product by tag OR title
+function isAssemblyProduct(p: any): boolean {
+  const tags = (p.tags || []).map((t: string) => t.toLowerCase())
+  const title = (p.title || '').toLowerCase()
+  return (
+    tags.some((t: string) => t.includes('assembly') || t.includes('build-and-ship') || t.includes('build and ship')) ||
+    title.includes('assembly') ||
+    title.includes('build and ship') ||
+    title.includes('build & ship')
+  )
+}
+
 function getStepProducts(products: any[], step: typeof STEPS[0]) {
   return products.filter(p => {
     const text = [p.title, p.productType, ...(p.tags || [])].join(' ').toLowerCase()
@@ -79,15 +91,15 @@ export default function BuildABoard() {
   const [search, setSearch] = useState('')
   const [buildAndShip, setBuildAndShip] = useState(false)
 
-  // Find the free assembly service product by tag
-  const assemblyProduct = products.find(p =>
-    (p.tags || []).map((t: string) => t.toLowerCase()).includes('assembly-service')
-  )
+  // Find the free assembly service product by tag or title
+  const assemblyProduct = products.find(isAssemblyProduct)
 
   useEffect(() => {
     getProducts().then(prods => {
+      // Debug: log all products with their tags to help find the assembly service product
+      console.log('[BAB] All products from Shopify:', prods.map(p => ({ title: p.title, tags: p.tags, type: p.productType })))
       // Include assembly-service product even if it would normally be excluded
-      setProducts(prods.filter(p => !isExcluded(p) || (p.tags || []).map((t: string) => t.toLowerCase()).includes('assembly-service')))
+      setProducts(prods.filter(p => !isExcluded(p) || isAssemblyProduct(p)))
       setLoading(false)
     })
   }, [])
