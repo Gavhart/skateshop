@@ -58,10 +58,16 @@ const SORT_OPTIONS = [
 // Products added within this many days get a "NEW" badge
 const NEW_DAYS = 180
 
-// Only matches against productType field — not title/description/tags
+// Match against productType, tags, title, and vendor so categories work
+// even when Shopify products don't have productType filled in
 function matchesProductType(product: any, keywords: string[]) {
-  const type = (product.productType || '').toLowerCase()
-  return keywords.some(kw => type.includes(kw.toLowerCase()))
+  const searchable = [
+    product.productType || '',
+    product.title || '',
+    product.vendor || '',
+    ...(product.tags || []),
+  ].join(' ').toLowerCase()
+  return keywords.some(kw => searchable.includes(kw.toLowerCase()))
 }
 
 function matchesSearch(product: any, term: string) {
