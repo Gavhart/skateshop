@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { getProducts } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
+import { useScrollReveal } from "../hooks/useScrollReveal"
 
 const BG    = '#0f0f0f'
 const BG2   = '#161616'
@@ -86,6 +87,9 @@ export default function BuildABoard() {
 
   // Clear search whenever the step changes
   useEffect(() => { setSearch('') }, [step])
+
+  // Re-run scroll reveal whenever step or products change
+  useScrollReveal([step, loading, isReview])
 
   const currentStep = STEPS[step]
   const isReview = step === STEPS.length
@@ -176,7 +180,7 @@ export default function BuildABoard() {
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '0 1.25rem' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+        <div className="reveal" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <p style={{ color: GOLD, fontSize: '0.72rem', letterSpacing: '0.2em', fontWeight: 700, marginBottom: '0.5rem' }}>HART BOYS SKATE SHOP</p>
           <h1 style={{ color: TEXT, fontSize: 'clamp(1.8rem, 4vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 0.75rem' }}>
             BUILD YOUR BOARD
@@ -187,7 +191,7 @@ export default function BuildABoard() {
         </div>
 
         {/* Step progress */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2.5rem', gap: 0 }}>
+        <div className="reveal reveal-delay-1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2.5rem', gap: 0 }}>
           {STEPS.map((s, i) => {
             const count = stepSelectionCount(s.id)
             const done = count > 0
@@ -232,7 +236,7 @@ export default function BuildABoard() {
         {!isReview ? (
           <div>
             {/* Step header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div className="reveal" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.2rem', letterSpacing: '-0.01em' }}>
                   {currentStep.icon} Step {step + 1}: Choose Your {currentStep.label}
@@ -252,7 +256,7 @@ export default function BuildABoard() {
             </div>
 
             {/* Pro tip */}
-            <div style={{ background: GOLD2, border: `1px solid rgba(201,169,97,0.2)`, borderRadius: 8, padding: '0.55rem 0.875rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+            <div className="reveal reveal-delay-1" style={{ background: GOLD2, border: `1px solid rgba(201,169,97,0.2)`, borderRadius: 8, padding: '0.55rem 0.875rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
               <span style={{ fontSize: '0.8rem', flexShrink: 0 }}>💡</span>
               <p style={{ color: MUTED, fontSize: '0.75rem', margin: 0, lineHeight: 1.5 }}>
                 <strong style={{ color: GOLD }}>Pro tip:</strong> {currentStep.tip}
@@ -307,13 +311,13 @@ export default function BuildABoard() {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem' }}>
-                {filtered.map(p => {
+                {filtered.map((p, idx) => {
                   const img = p.images.edges[0]?.node.url
                   const price = p.priceRange.minVariantPrice.amount
                   const selected = isSelectedInStep(p, currentStep.id)
                   return (
                     <div key={p.id}
-                      className={`bab-card${selected ? ' selected' : ''}`}
+                      className={`bab-card${selected ? ' selected' : ''} reveal reveal-delay-${(idx % 4) + 1}`}
                       onClick={() => toggle(p)}
                       style={{ background: BG2, border: `1.5px solid ${selected ? GOLD : BORDER}`, borderRadius: 10, overflow: 'hidden', cursor: 'pointer' }}
                     >
@@ -371,8 +375,8 @@ export default function BuildABoard() {
         ) : (
           /* Review step */
           <div>
-            <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.5rem', textAlign: 'center', letterSpacing: '-0.01em' }}>🛒 Your Complete Board</h2>
-            <p style={{ color: MUTED, fontSize: '0.82rem', textAlign: 'center', marginBottom: '1.75rem' }}>
+            <h2 className="reveal" style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.5rem', textAlign: 'center', letterSpacing: '-0.01em' }}>🛒 Your Complete Board</h2>
+            <p className="reveal reveal-delay-1" style={{ color: MUTED, fontSize: '0.82rem', textAlign: 'center', marginBottom: '1.75rem' }}>
               {totalSelectedItems === 0 ? 'No items selected yet.' : `${totalSelectedItems} item${totalSelectedItems !== 1 ? 's' : ''} ready to add`}
             </p>
 
@@ -383,10 +387,10 @@ export default function BuildABoard() {
             ) : (
               <>
                 {/* Per-step review */}
-                {STEPS.map(s => {
+                {STEPS.map((s, i) => {
                   const picks = selections[s.id] ?? []
                   return (
-                    <div key={s.id} style={{ marginBottom: '1.25rem' }}>
+                    <div key={s.id} className={`reveal reveal-delay-${(i % 4) + 1}`} style={{ marginBottom: '1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <span style={{ color: picks.length > 0 ? GOLD : MUTED, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em' }}>
                           {s.icon} {s.label.toUpperCase()} {picks.length > 0 ? `(${picks.length})` : ''}
@@ -427,7 +431,7 @@ export default function BuildABoard() {
                 })}
 
                 {/* Total & checkout */}
-                <div style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '1.25rem 1.5rem', maxWidth: 420, margin: '1.5rem auto 0' }}>
+                <div className="reveal" style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '1.25rem 1.5rem', maxWidth: 420, margin: '1.5rem auto 0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingBottom: '0.75rem', marginBottom: '0.75rem', borderBottom: `1px solid ${BORDER}` }}>
                     <span style={{ color: MUTED, fontSize: '0.82rem', letterSpacing: '0.06em' }}>ESTIMATED TOTAL</span>
                     <span style={{ color: GOLD, fontSize: '1.5rem', fontWeight: 700 }}>${totalPrice.toFixed(2)}</span>

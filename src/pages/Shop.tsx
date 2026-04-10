@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { getProducts, createCheckout } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
+import { useScrollReveal } from "../hooks/useScrollReveal"
 
 const GOLD = '#C9A961'
 const GOLD_LIGHT = '#D4AF37'
@@ -123,6 +124,9 @@ export default function Shop() {
 
   const searchRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Re-run scroll reveal whenever products load or page/recently-viewed changes
+  useScrollReveal([products, page, recentlyViewed])
 
   // Persist cart to localStorage so items survive page navigation
   useEffect(() => {
@@ -1063,7 +1067,7 @@ export default function Shop() {
 
           {/* Desktop toolbar */}
           <div className="shop-toolbar">
-            <div>
+            <div className="reveal">
               <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: TEXT, margin: 0, letterSpacing: '0.04em' }}>{currentLabel}</h1>
               <p style={{ color: MUTED, fontSize: '0.78rem', margin: '0.15rem 0 0', letterSpacing: '0.04em' }}>{filtered.length} {filtered.length === 1 ? 'product' : 'products'}</p>
             </div>
@@ -1083,18 +1087,19 @@ export default function Shop() {
           {/* ── STAFF PICKS ── */}
           {!hasActiveFilters && staffPicks.length > 0 && (
             <div style={{ marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="reveal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', color: GOLD, textTransform: 'uppercase' }}>⭐ Staff Picks</span>
                 <div style={{ flex: 1, height: 1, background: BORDER }} />
               </div>
               <div style={{ display: 'flex', gap: '0.875rem', overflowX: 'auto', paddingBottom: '0.75rem' }} className="scrollbar-thin">
-                {staffPicks.map(p => {
+                {staffPicks.map((p, i) => {
                   const img = p.images.edges[0]?.node.url
                   const price = parseFloat(p.priceRange.minVariantPrice.amount)
                   const inStock = p.variants.edges[0]?.node.availableForSale ?? false
                   return (
                     <div key={p.id}
                       onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
+                      className={`reveal reveal-scale reveal-delay-${(i % 4) + 1}`}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
@@ -1125,7 +1130,7 @@ export default function Shop() {
           {/* Grid */}
           {display.length > 0 ? (
             <div className="products-grid">
-              {display.map(p => {
+              {display.map((p, idx) => {
                 const img = p.images.edges[0]?.node.url
                 const variant = getVariant(p)
                 const inStock = variant?.availableForSale ?? false
@@ -1136,7 +1141,7 @@ export default function Shop() {
                 const productIsNew = isNew(p.createdAt)
 
                 return (
-                  <div key={p.id} className="product-card prod-card-wrap"
+                  <div key={p.id} className={`product-card prod-card-wrap reveal reveal-delay-${(idx % 4) + 1}`}
                     onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
                     style={{ background: BG2, borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
                     <div style={{ position: 'relative', aspectRatio: '1', background: BG3, overflow: 'hidden' }}>
@@ -1249,7 +1254,7 @@ export default function Shop() {
           {/* ── RECENTLY VIEWED ── */}
           {recentlyViewed.length > 0 && (
             <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${BORDER}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="reveal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', color: MUTED, textTransform: 'uppercase' }}>🕐 Recently Viewed</span>
                 <div style={{ flex: 1, height: 1, background: BORDER }} />
                 <button
@@ -1262,13 +1267,14 @@ export default function Shop() {
                 </button>
               </div>
               <div style={{ display: 'flex', gap: '0.875rem', overflowX: 'auto', paddingBottom: '0.75rem' }} className="scrollbar-thin">
-                {recentlyViewed.map(p => {
+                {recentlyViewed.map((p, i) => {
                   const img = p.images?.edges?.[0]?.node?.url
                   const price = parseFloat(p.priceRange?.minVariantPrice?.amount ?? '0')
                   const inStock = p.variants?.edges?.[0]?.node?.availableForSale ?? false
                   return (
                     <div key={p.id}
                       onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
+                      className={`reveal reveal-scale reveal-delay-${(i % 4) + 1}`}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
