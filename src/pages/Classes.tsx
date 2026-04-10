@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { insertClassSignup } from '../lib/supabase'
 
 const FORMSPREE_ID = 'https://formspree.io/f/xaqpkrno'
 
@@ -16,11 +17,18 @@ function Classes() {
     const formData = new FormData(form)
 
     try {
-      await fetch(FORMSPREE_ID, {
-        method: 'POST',
-        body: formData,
-        headers: { 'Accept': 'application/json' }
+      // Save to Supabase
+      await insertClassSignup({
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string || undefined,
+        age: formData.get('age') ? Number(formData.get('age')) : undefined,
+        class_type: formData.get('classType') as string,
+        skill_level: skill || undefined,
+        message: formData.get('notes') as string || undefined,
       })
+      // Also send to Formspree for email notification
+      fetch(FORMSPREE_ID, { method: 'POST', body: formData, headers: { 'Accept': 'application/json' } })
       setSubmitted(true)
       form.reset()
       setSkill('')
