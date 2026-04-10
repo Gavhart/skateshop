@@ -88,12 +88,12 @@ export default function BuildABoard() {
   // Clear search whenever the step changes
   useEffect(() => { setSearch('') }, [step])
 
-  // Re-run scroll reveal whenever step or products change
-  useScrollReveal([step, loading, isReview])
-
   const currentStep = STEPS[step]
   const isReview = step === STEPS.length
   const stepProducts = currentStep ? getStepProducts(products, currentStep) : []
+
+  // Re-run scroll reveal whenever step or products change
+  useScrollReveal([step, loading, isReview])
 
   // Total items selected across all steps
   const totalSelectedItems = Object.values(selections).reduce((n, arr) => n + arr.length, 0)
