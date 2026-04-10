@@ -144,7 +144,14 @@ export default function Shop() {
 
   useEffect(() => {
     getProducts()
-      .then(p => { setProducts(p.filter((x: any) => !isExcluded(x))); setLoading(false) })
+      .then(p => {
+        const filtered = p.filter((x: any) => !isExcluded(x))
+        // Log unique productTypes so we can tune category keywords
+        const types = [...new Set(filtered.map((x: any) => x.productType).filter(Boolean))]
+        console.log('[Shop] productTypes in store:', types)
+        setProducts(filtered)
+        setLoading(false)
+      })
       .catch((e: any) => { setError(e.message); setLoading(false) })
   }, [])
 
