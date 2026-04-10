@@ -1,9 +1,23 @@
-import { useState, useEffect } from 'react'
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 
 function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const clickCount = useRef(0)
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleLogoClick() {
+    clickCount.current += 1
+    if (clickTimer.current) clearTimeout(clickTimer.current)
+    if (clickCount.current >= 3) {
+      clickCount.current = 0
+      navigate('/admin')
+    } else {
+      clickTimer.current = setTimeout(() => { clickCount.current = 0 }, 800)
+    }
+  }
 
   // Close menu on route change
   useEffect(() => {
@@ -29,7 +43,7 @@ function Layout() {
   return (
     <div className="site">
       <nav className="navbar">
-        <Link to="/" className="logo">
+        <Link to="/" className="logo" onClick={handleLogoClick}>
           <img src="/logo.jpeg" alt="Hart Boys" className="logo-img" />
         </Link>
 
