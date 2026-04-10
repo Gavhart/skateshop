@@ -11,8 +11,10 @@ export default function WallOfStoke() {
   const [fetchError, setFetchError] = useState(false)
 
   const [avatar, setAvatar] = useState('🛹')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [city, setCity] = useState('')
+  const [state, setState] = useState('')
   const [note, setNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -29,20 +31,23 @@ export default function WallOfStoke() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !note.trim()) { setError('Name and note are required.'); return }
-    if (note.trim().length < 10) { setError('Tell us a bit more!'); return }
+    if (!firstName.trim()) { setError('First name is required.'); return }
+    if (!lastName.trim()) { setError('Last name is required.'); return }
+    if (!city.trim()) { setError('City is required.'); return }
+    if (!state.trim()) { setError('State is required.'); return }
+    if (!note.trim() || note.trim().length < 10) { setError('Tell us a bit more!'); return }
     setSubmitting(true)
     setError('')
     try {
       const newEntry = await insertStokeEntry({
         avatar,
-        name: name.trim(),
-        city: city.trim() || 'Unknown',
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        city: `${city.trim()}, ${state.trim()}`,
         note: note.trim(),
       })
       setEntries(prev => [newEntry, ...prev])
       setSubmitted(true)
-      setName(''); setCity(''); setNote(''); setAvatar('🛹')
+      setFirstName(''); setLastName(''); setCity(''); setState(''); setNote(''); setAvatar('🛹')
     } catch {
       setError('Something went wrong. Try again.')
     } finally {
@@ -187,17 +192,33 @@ export default function WallOfStoke() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ color: '#888', fontSize: '0.78rem', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>
-                    NAME *
+                    FIRST NAME *
                   </label>
-                  <input className="stoke-input" style={inputStyle} placeholder="Your name"
-                    value={name} onChange={e => setName(e.target.value)} maxLength={40} />
+                  <input className="stoke-input" style={inputStyle} placeholder="First"
+                    value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={30} />
                 </div>
                 <div>
                   <label style={{ color: '#888', fontSize: '0.78rem', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>
-                    CITY
+                    LAST NAME *
                   </label>
-                  <input className="stoke-input" style={inputStyle} placeholder="Soldotna, AK"
+                  <input className="stoke-input" style={inputStyle} placeholder="Last"
+                    value={lastName} onChange={e => setLastName(e.target.value)} maxLength={30} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ color: '#888', fontSize: '0.78rem', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>
+                    CITY *
+                  </label>
+                  <input className="stoke-input" style={inputStyle} placeholder="Soldotna"
                     value={city} onChange={e => setCity(e.target.value)} maxLength={40} />
+                </div>
+                <div>
+                  <label style={{ color: '#888', fontSize: '0.78rem', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>
+                    STATE *
+                  </label>
+                  <input className="stoke-input" style={inputStyle} placeholder="AK"
+                    value={state} onChange={e => setState(e.target.value)} maxLength={20} />
                 </div>
               </div>
 
