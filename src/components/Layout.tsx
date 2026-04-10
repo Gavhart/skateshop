@@ -8,13 +8,15 @@ function Layout() {
   const clickCount = useRef(0)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function handleLogoClick() {
+  function handleLogoClick(e: React.MouseEvent) {
     clickCount.current += 1
     if (clickTimer.current) clearTimeout(clickTimer.current)
     if (clickCount.current >= 3) {
       clickCount.current = 0
+      e.preventDefault()
       navigate('/admin')
     } else {
+      e.preventDefault()
       clickTimer.current = setTimeout(() => { clickCount.current = 0 }, 800)
     }
   }
