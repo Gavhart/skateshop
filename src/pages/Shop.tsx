@@ -116,8 +116,13 @@ export default function Shop() {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
   const [modalImageIdx, setModalImageIdx] = useState(0)
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number; icon: string }[]>([])
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [recentlyViewed, setRecentlyViewed] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem('hb_recent') || '[]') } catch { return [] }
+  })
 
   const searchRef = useRef<HTMLInputElement>(null)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
 
   // Persist cart to localStorage so items survive page navigation
   useEffect(() => {
@@ -245,6 +250,26 @@ export default function Shop() {
   }
 
   const removeFromCart = (id: string) => setCart(cart.filter(i => i.variantId !== id))
+
+  const trackRecentlyViewed = (product: any) => {
+    setRecentlyViewed(prev => {
+      const next = [product, ...prev.filter(p => p.id !== product.id)].slice(0, 8)
+      try { localStorage.setItem('hb_recent', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(e.target as Node) &&
+          searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
   const updateQty = (id: string, delta: number) =>
     setCart(cart.map(i => i.variantId === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i))
 
@@ -285,28 +310,82 @@ export default function Shop() {
   const renderSidebar = () => (
     <div style={{ padding: '1rem' }}>
       {/* Search */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
         <div style={{ position: 'relative' }}>
+          <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none', flexShrink: 0 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
           <input
             ref={searchRef}
             type="text"
             placeholder="Search products..."
             value={searchTerm}
             onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
+            onFocus={() => setSearchFocused(true)}
+            onKeyDown={e => e.key === 'Escape' && setSearchFocused(false)}
             style={{
-              width: '100%', padding: '0.625rem 2.25rem 0.625rem 0.875rem',
-              background: BG3, border: `1px solid ${BORDER}`,
-              color: TEXT, borderRadius: 6, fontSize: '0.9rem',
-              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
+              width: '100%', padding: '0.625rem 2.25rem 0.625rem 2rem',
+              background: BG3, border: `1px solid ${searchFocused ? GOLD : BORDER}`,
+              color: TEXT, borderRadius: 6, fontSize: '0.875rem',
+              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+              transition: 'border-color 0.2s'
             }}
-            onFocus={e => (e.target.style.borderColor = GOLD)}
-            onBlur={e => (e.target.style.borderColor = BORDER)}
           />
           {searchTerm && (
-            <button onClick={() => { setSearchTerm(''); setPage(1) }}
-              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>×</button>
+            <button onClick={() => { setSearchTerm(''); setPage(1); searchRef.current?.focus() }}
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}>×</button>
           )}
         </div>
+
+        {/* Live dropdown */}
+        {searchFocused && searchTerm.trim().length > 0 && (() => {
+          const hits = products.filter(p => !isExcluded(p) && matchesSearch(p, searchTerm)).slice(0, 6)
+          return (
+            <div ref={searchDropdownRef} style={{
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: BG2, border: `1px solid ${BORDER}`, borderRadius: 8,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 999, overflow: 'hidden'
+            }}>
+              {hits.length === 0 ? (
+                <div style={{ padding: '0.875rem', color: MUTED, fontSize: '0.8rem', textAlign: 'center' }}>No results for "{searchTerm}"</div>
+              ) : (
+                <>
+                  {hits.map(p => {
+                    const img = p.images.edges[0]?.node.url
+                    const price = p.priceRange.minVariantPrice.amount
+                    return (
+                      <button key={p.id} onMouseDown={() => {
+                        setSelectedProduct(p); trackRecentlyViewed(p)
+                        setSearchFocused(false); setSearchTerm('')
+                      }} style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: '0.625rem',
+                        padding: '0.6rem 0.75rem', background: 'none', border: 'none',
+                        borderBottom: `1px solid ${BORDER}`, cursor: 'pointer', textAlign: 'left',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = BG3)}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                        <div style={{ width: 40, height: 40, borderRadius: 5, overflow: 'hidden', background: BG3, flexShrink: 0 }}>
+                          {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3 }}>🛹</div>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: 0, color: TEXT, fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
+                          {p.vendor && <p style={{ margin: 0, color: MUTED, fontSize: '0.68rem' }}>{p.vendor}</p>}
+                        </div>
+                        <span style={{ color: GOLD, fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>${parseFloat(price).toFixed(2)}</span>
+                      </button>
+                    )
+                  })}
+                  <button onMouseDown={() => { setSearchFocused(false) }}
+                    style={{ width: '100%', padding: '0.5rem', background: 'none', border: 'none', color: MUTED, fontSize: '0.72rem', cursor: 'pointer', letterSpacing: '0.05em' }}>
+                    See all {products.filter(p => !isExcluded(p) && matchesSearch(p, searchTerm)).length} results in grid ↓
+                  </button>
+                </>
+              )}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Category nav */}
@@ -1015,7 +1094,7 @@ export default function Shop() {
                   const inStock = p.variants.edges[0]?.node.availableForSale ?? false
                   return (
                     <div key={p.id}
-                      onClick={() => setSelectedProduct(p)}
+                      onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
@@ -1058,7 +1137,7 @@ export default function Shop() {
 
                 return (
                   <div key={p.id} className="product-card prod-card-wrap"
-                    onClick={() => setSelectedProduct(p)}
+                    onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
                     style={{ background: BG2, borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
                     <div style={{ position: 'relative', aspectRatio: '1', background: BG3, overflow: 'hidden' }}>
                       {img
@@ -1166,6 +1245,60 @@ export default function Shop() {
               >Next →</button>
             </div>
           )}
+
+          {/* ── RECENTLY VIEWED ── */}
+          {recentlyViewed.length > 0 && (
+            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.2em', color: MUTED, textTransform: 'uppercase' }}>🕐 Recently Viewed</span>
+                <div style={{ flex: 1, height: 1, background: BORDER }} />
+                <button
+                  onClick={() => {
+                    setRecentlyViewed([])
+                    try { localStorage.removeItem('hb_recent') } catch {}
+                  }}
+                  style={{ background: 'none', border: 'none', color: MUTED, fontSize: '0.68rem', cursor: 'pointer', letterSpacing: '0.05em', textDecoration: 'underline', textUnderlineOffset: 2, fontFamily: 'inherit', flexShrink: 0 }}>
+                  Clear
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.875rem', overflowX: 'auto', paddingBottom: '0.75rem' }} className="scrollbar-thin">
+                {recentlyViewed.map(p => {
+                  const img = p.images?.edges?.[0]?.node?.url
+                  const price = parseFloat(p.priceRange?.minVariantPrice?.amount ?? '0')
+                  const inStock = p.variants?.edges?.[0]?.node?.availableForSale ?? false
+                  return (
+                    <div key={p.id}
+                      onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
+                      style={{
+                        minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
+                        border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
+                        overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = GOLD; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.transform = '' }}
+                    >
+                      <div style={{ aspectRatio: '1', overflow: 'hidden', background: BG, position: 'relative' }}>
+                        {img
+                          ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: MUTED, opacity: 0.3 }}>🛹</div>
+                        }
+                        {!inStock && (
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ background: '#111', color: MUTED, padding: '0.25rem 0.5rem', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.08em', borderRadius: 3, border: `1px solid ${BORDER}` }}>SOLD OUT</span>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ padding: '0.625rem' }}>
+                        <p style={{ margin: 0, color: TEXT, fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '0.25rem' }}>{p.title}</p>
+                        <p style={{ margin: 0, color: GOLD, fontSize: '0.85rem', fontWeight: 700 }}>${price.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
