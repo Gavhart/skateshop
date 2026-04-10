@@ -24,7 +24,7 @@ export default function WallOfStoke() {
   useScrollReveal([entries])
 
   useEffect(() => {
-    fetchStokeEntries()
+    fetchStokeEntries(true)
       .then(data => { setEntries(data); setLoading(false) })
       .catch(() => { setFetchError(true); setLoading(false) })
   }, [])
@@ -164,7 +164,7 @@ export default function WallOfStoke() {
           <div style={{ background: '#111', border: `1px solid ${GOLD}`, borderRadius: 14, padding: '2.5rem' }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤘</div>
             <h3 style={{ color: GOLD, fontSize: '1.5rem', marginBottom: '0.5rem' }}>STOKE DROPPED.</h3>
-            <p style={{ color: '#888', marginBottom: '2rem' }}>Your entry is live on the wall for everyone to see.</p>
+            <p style={{ color: '#888', marginBottom: '2rem' }}>Your entry is pending review and will appear on the wall shortly.</p>
             <button className="stoke-drop-btn" onClick={() => { setSubmitted(false); setShowForm(false) }}>
               Add Another
             </button>

@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react'
-import { fetchClassSignups, fetchStokeEntries, type ClassSignup, type StokeEntry } from '../lib/supabase'
+import { useState, useEffect, useRef } from 'react'
+import {
+  fetchClassSignups, confirmSignup, deleteSignup,
+  fetchStokeEntries, approveWallEntry, deleteWallEntry,
+  type ClassSignup, type StokeEntry,
+} from '../lib/supabase'
 
-// ── Change this password to whatever you want ──────────────────────────────
 const ADMIN_PASSWORD = 'dropIn@HB26'
-
+const LAST_VISIT_KEY = 'hb_admin_last_visit'
 const GOLD = '#c9a961'
+const GREEN = '#4caf7d'
+const RED = '#e05252'
 const BG = '#0a0a0a'
 const CARD = '#111'
 const BORDER = '#1e1e1e'
@@ -16,7 +21,6 @@ const CLASS_LABELS: Record<string, string> = {
   street: '🟡 Street Techniques',
   group: '🔵 Small Group',
 }
-
 const SKILL_LABELS: Record<string, string> = {
   never: 'Never skated',
   basic: 'Can push & roll',
@@ -24,19 +28,42 @@ const SKILL_LABELS: Record<string, string> = {
 }
 
 function fmt(d: string) {
-  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function isNew(dateStr: string, since: number) {
+  return new Date(dateStr).getTime() > since
+}
+
+function exportCSV(signups: ClassSignup[]) {
+  const headers = ['Name', 'Email', 'Phone', 'Age', 'Class', 'Skill Level', 'Notes', 'Confirmed', 'Date']
+  const rows = signups.map(s => [
+    s.name, s.email, s.phone || '', s.age || '', CLASS_LABELS[s.class_type] || s.class_type,
+    SKILL_LABELS[s.skill_level || ''] || s.skill_level || '', s.message || '',
+    s.confirmed ? 'Yes' : 'No', fmt(s.created_at),
+  ])
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url
+  a.download = `hartboys-signups-${new Date().toISOString().split('T')[0]}.csv`
+  a.click(); URL.revokeObjectURL(url)
 }
 
 export default function Admin() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('hb_admin') === '1')
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState(false)
+  const lastVisit = useRef(Number(localStorage.getItem(LAST_VISIT_KEY) || 0))
 
   const [tab, setTab] = useState<Tab>('signups')
   const [signups, setSignups] = useState<ClassSignup[]>([])
   const [wall, setWall] = useState<StokeEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
 
   function login(e: React.FormEvent) {
     e.preventDefault()
@@ -44,18 +71,49 @@ export default function Admin() {
       sessionStorage.setItem('hb_admin', '1')
       setAuthed(true)
     } else {
-      setPwError(true)
-      setPw('')
+      setPwError(true); setPw('')
     }
+  }
+
+  function logout() {
+    localStorage.setItem(LAST_VISIT_KEY, Date.now().toString())
+    sessionStorage.removeItem('hb_admin')
+    setAuthed(false)
   }
 
   useEffect(() => {
     if (!authed) return
     setLoading(true)
-    Promise.all([fetchClassSignups(), fetchStokeEntries()])
+    Promise.all([fetchClassSignups(), fetchStokeEntries(false)])
       .then(([s, w]) => { setSignups(s); setWall(w) })
       .finally(() => setLoading(false))
   }, [authed])
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  async function toggleConfirm(s: ClassSignup) {
+    await confirmSignup(s.id, !s.confirmed)
+    setSignups(prev => prev.map(x => x.id === s.id ? { ...x, confirmed: !s.confirmed } : x))
+  }
+
+  async function handleDeleteSignup(id: string) {
+    await deleteSignup(id)
+    setSignups(prev => prev.filter(x => x.id !== id))
+    setConfirmingDelete(null)
+  }
+
+  async function toggleApprove(w: StokeEntry) {
+    await approveWallEntry(w.id, !w.approved)
+    setWall(prev => prev.map(x => x.id === w.id ? { ...x, approved: !w.approved } : x))
+  }
+
+  async function handleDeleteWall(id: string) {
+    await deleteWallEntry(id)
+    setWall(prev => prev.filter(x => x.id !== id))
+    setConfirmingDelete(null)
+  }
+
+  // ── Styles ─────────────────────────────────────────────────────────────────
 
   const inputStyle: React.CSSProperties = {
     background: '#111', border: `1px solid #2a2a2a`, borderRadius: 8,
@@ -63,7 +121,14 @@ export default function Admin() {
     width: '100%', boxSizing: 'border-box',
   }
 
-  // ── Login screen ──────────────────────────────────────────────────────────
+  const iconBtn = (color: string): React.CSSProperties => ({
+    background: 'none', border: `1px solid ${color}22`, borderRadius: 6,
+    color, cursor: 'pointer', padding: '0.3rem 0.55rem', fontSize: '0.8rem',
+    transition: 'background 0.15s', whiteSpace: 'nowrap',
+  })
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+
   if (!authed) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: BG }}>
@@ -74,21 +139,14 @@ export default function Admin() {
             <p style={{ color: '#444', fontSize: '0.85rem', marginTop: '0.25rem' }}>Hart Boys Skate Shop</p>
           </div>
           <form onSubmit={login} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <input
-              type="password"
-              placeholder="Password"
-              value={pw}
+            <input type="password" placeholder="Password" value={pw} autoFocus
               onChange={e => { setPw(e.target.value); setPwError(false) }}
-              style={{ ...inputStyle, textAlign: 'center', fontSize: '1.1rem' }}
-              autoFocus
-            />
-            {pwError && <p style={{ color: '#e05252', textAlign: 'center', margin: 0, fontSize: '0.85rem' }}>Wrong password.</p>}
+              style={{ ...inputStyle, textAlign: 'center', fontSize: '1.1rem' }} />
+            {pwError && <p style={{ color: RED, textAlign: 'center', margin: 0, fontSize: '0.85rem' }}>Wrong password.</p>}
             <button type="submit" style={{
               padding: '0.9rem', background: GOLD, color: '#000', border: 'none',
               borderRadius: 8, fontWeight: 800, fontSize: '0.95rem', letterSpacing: '0.08em', cursor: 'pointer',
-            }}>
-              ENTER
-            </button>
+            }}>ENTER</button>
           </form>
         </div>
       </div>
@@ -96,73 +154,115 @@ export default function Admin() {
   }
 
   // ── Filtered data ─────────────────────────────────────────────────────────
+
   const q = search.toLowerCase()
   const filteredSignups = signups.filter(s =>
-    !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || s.class_type.includes(q)
+    !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || (s.class_type || '').includes(q)
   )
   const filteredWall = wall.filter(w =>
     !q || w.name.toLowerCase().includes(q) || w.city.toLowerCase().includes(q) || w.note.toLowerCase().includes(q)
   )
 
+  const newSignups = signups.filter(s => isNew(s.created_at, lastVisit.current)).length
+  const newWall = wall.filter(w => isNew(w.created_at, lastVisit.current)).length
+  const pendingWall = wall.filter(w => !w.approved).length
+
   // ── Dashboard ─────────────────────────────────────────────────────────────
+
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingBottom: '4rem' }}>
       <style>{`
-        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-        .admin-table th { color: #555; font-weight: 600; letter-spacing: 0.08em; font-size: 0.72rem;
-          text-align: left; padding: 0.6rem 1rem; border-bottom: 1px solid #1a1a1a; white-space: nowrap; }
-        .admin-table td { padding: 0.85rem 1rem; border-bottom: 1px solid #161616; color: #aaa; vertical-align: top; }
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .admin-table th { color: #555; font-weight: 600; letter-spacing: 0.07em; font-size: 0.7rem;
+          text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid #1a1a1a; white-space: nowrap; }
+        .admin-table td { padding: 0.8rem 0.85rem; border-bottom: 1px solid #161616; color: #aaa; vertical-align: middle; }
         .admin-table tr:last-child td { border-bottom: none; }
         .admin-table tr:hover td { background: #141414; }
-        .admin-tab { padding: 0.6rem 1.4rem; border: 1px solid #222; border-radius: 6px;
-          background: none; color: #555; cursor: pointer; font-size: 0.8rem; font-weight: 700;
-          letter-spacing: 0.06em; transition: all 0.15s; }
+        .admin-tab { padding: 0.55rem 1.2rem; border: 1px solid #222; border-radius: 6px;
+          background: none; color: #555; cursor: pointer; font-size: 0.78rem; font-weight: 700;
+          letter-spacing: 0.06em; transition: all 0.15s; position: relative; }
         .admin-tab.active { background: ${GOLD}; color: #000; border-color: ${GOLD}; }
         .admin-tab:not(.active):hover { border-color: #444; color: #aaa; }
-        @media(max-width:640px) { .admin-table th, .admin-table td { padding: 0.65rem 0.5rem; } }
+        .new-dot { display: inline-block; background: ${RED}; color: #fff; border-radius: 10px;
+          font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; margin-left: 0.4rem; vertical-align: middle; }
+        .pending-dot { display: inline-block; background: #e09a52; color: #000; border-radius: 10px;
+          font-size: 0.65rem; font-weight: 800; padding: 0.1rem 0.4rem; margin-left: 0.4rem; vertical-align: middle; }
+        .icon-btn:hover { background: rgba(255,255,255,0.06) !important; }
+        .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex;
+          align-items: center; justify-content: center; z-index: 100; }
       `}</style>
 
-      {/* Header */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: '1.5rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ color: GOLD, fontSize: '1.2rem', letterSpacing: '0.1em', margin: 0 }}>HART BOYS — ADMIN</h1>
-          <p style={{ color: '#444', fontSize: '0.78rem', margin: '0.2rem 0 0' }}>Class signups & Wall of Stoke</p>
+      {/* Delete confirm overlay */}
+      {confirmingDelete && (
+        <div className="confirm-overlay">
+          <div style={{ background: '#161616', border: `1px solid #2a2a2a`, borderRadius: 14, padding: '2rem', maxWidth: 340, width: '90%', textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>🗑️</div>
+            <p style={{ color: '#ccc', marginBottom: '1.5rem' }}>Are you sure? This can't be undone.</p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <button onClick={() => setConfirmingDelete(null)}
+                style={{ padding: '0.6rem 1.4rem', background: 'none', border: '1px solid #333', color: '#888', borderRadius: 7, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={() => {
+                const [type, id] = confirmingDelete.split(':')
+                type === 'signup' ? handleDeleteSignup(id) : handleDeleteWall(id)
+              }} style={{ padding: '0.6rem 1.4rem', background: RED, border: 'none', color: '#fff', borderRadius: 7, cursor: 'pointer', fontWeight: 700 }}>
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
-        <button onClick={() => { sessionStorage.removeItem('hb_admin'); setAuthed(false) }}
-          style={{ background: 'none', border: '1px solid #2a2a2a', color: '#555', borderRadius: 6, padding: '0.4rem 1rem', cursor: 'pointer', fontSize: '0.8rem' }}>
+      )}
+
+      {/* Header */}
+      <div style={{ borderBottom: `1px solid ${BORDER}`, padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ color: GOLD, fontSize: '1.1rem', letterSpacing: '0.1em', margin: 0 }}>HART BOYS — ADMIN</h1>
+          <p style={{ color: '#444', fontSize: '0.75rem', margin: '0.15rem 0 0' }}>Class signups & Wall of Stoke</p>
+        </div>
+        <button onClick={logout} style={{ background: 'none', border: '1px solid #2a2a2a', color: '#555', borderRadius: 6, padding: '0.4rem 1rem', cursor: 'pointer', fontSize: '0.8rem' }}>
           Log out
         </button>
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', padding: '1.5rem 2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', padding: '1.5rem 2rem' }}>
         {[
-          { label: 'Class Signups', value: signups.length, icon: '🛹' },
-          { label: 'This Month', value: signups.filter(s => new Date(s.created_at).getMonth() === new Date().getMonth()).length, icon: '📅' },
-          { label: 'Wall of Stoke', value: wall.length, icon: '🤘' },
+          { label: 'Total Signups', value: signups.length, icon: '🛹', accent: GOLD },
+          { label: 'This Month', value: signups.filter(s => new Date(s.created_at).getMonth() === new Date().getMonth()).length, icon: '📅', accent: '#888' },
+          { label: 'Confirmed', value: signups.filter(s => s.confirmed).length, icon: '✅', accent: GREEN },
+          { label: 'Wall Entries', value: wall.length, icon: '🤘', accent: GOLD },
+          { label: 'Pending Review', value: pendingWall, icon: '⏳', accent: '#e09a52' },
         ].map(stat => (
-          <div key={stat.label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1.25rem 1.5rem' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.4rem' }}>{stat.icon}</div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', lineHeight: 1 }}>{loading ? '…' : stat.value}</div>
-            <div style={{ color: '#555', fontSize: '0.78rem', marginTop: '0.3rem' }}>{stat.label}</div>
+          <div key={stat.label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1.1rem 1.25rem' }}>
+            <div style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>{stat.icon}</div>
+            <div style={{ fontSize: '1.9rem', fontWeight: 800, color: stat.accent, lineHeight: 1 }}>{loading ? '…' : stat.value}</div>
+            <div style={{ color: '#555', fontSize: '0.74rem', marginTop: '0.25rem' }}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Tabs + search */}
+      {/* Tabs + search + export */}
       <div style={{ padding: '0 2rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <button className={`admin-tab${tab === 'signups' ? ' active' : ''}`} onClick={() => setTab('signups')}>
-          CLASS SIGNUPS ({signups.length})
+          SIGNUPS ({signups.length})
+          {newSignups > 0 && <span className="new-dot">{newSignups} NEW</span>}
         </button>
         <button className={`admin-tab${tab === 'wall' ? ' active' : ''}`} onClick={() => setTab('wall')}>
           WALL OF STOKE ({wall.length})
+          {newWall > 0 && <span className="new-dot">{newWall} NEW</span>}
+          {pendingWall > 0 && <span className="pending-dot">{pendingWall} PENDING</span>}
         </button>
-        <input
-          style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: 160, maxWidth: 280, padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <input style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: 140, maxWidth: 260, padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
+          placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+        {tab === 'signups' && signups.length > 0 && (
+          <button onClick={() => exportCSV(signups)} style={{
+            padding: '0.5rem 1rem', background: 'none', border: `1px solid #2a2a2a`,
+            color: '#888', borderRadius: 7, cursor: 'pointer', fontSize: '0.8rem', whiteSpace: 'nowrap',
+          }}>
+            ⬇ Export CSV
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -176,6 +276,7 @@ export default function Admin() {
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th></th>
                   <th>NAME</th>
                   <th>EMAIL</th>
                   <th>PHONE</th>
@@ -184,19 +285,41 @@ export default function Admin() {
                   <th>SKILL</th>
                   <th>NOTES</th>
                   <th>DATE</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSignups.map(s => (
                   <tr key={s.id}>
+                    <td>
+                      {isNew(s.created_at, lastVisit.current) && (
+                        <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>
+                      )}
+                    </td>
                     <td style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
                     <td><a href={`mailto:${s.email}`} style={{ color: GOLD, textDecoration: 'none' }}>{s.email}</a></td>
                     <td style={{ whiteSpace: 'nowrap' }}>{s.phone || '—'}</td>
                     <td>{s.age || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{CLASS_LABELS[s.class_type] || s.class_type}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{SKILL_LABELS[s.skill_level || ''] || s.skill_level || '—'}</td>
-                    <td style={{ maxWidth: 200, color: '#666' }}>{s.message || '—'}</td>
-                    <td style={{ whiteSpace: 'nowrap', color: '#555' }}>{fmt(s.created_at)}</td>
+                    <td style={{ maxWidth: 180, color: '#666', fontSize: '0.82rem' }}>{s.message || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(s.created_at)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button className="icon-btn" style={iconBtn(s.confirmed ? GREEN : '#555')}
+                          onClick={() => toggleConfirm(s)} title={s.confirmed ? 'Mark unconfirmed' : 'Mark confirmed'}>
+                          {s.confirmed ? '✅ Confirmed' : '○ Confirm'}
+                        </button>
+                        <a href={`mailto:${s.email}?subject=Your Hart Boys Class Signup&body=Hey ${s.name.split(' ')[0]},%0A%0AThanks for signing up!`}
+                          style={{ ...iconBtn('#888'), textDecoration: 'none', display: 'inline-block' }} title="Reply by email">
+                          ✉
+                        </a>
+                        <button className="icon-btn" style={iconBtn(RED)}
+                          onClick={() => setConfirmingDelete(`signup:${s.id}`)} title="Delete">
+                          🗑
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -209,21 +332,40 @@ export default function Admin() {
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th></th>
                   <th>AVATAR</th>
                   <th>NAME</th>
                   <th>CITY</th>
                   <th>NOTE</th>
                   <th>DATE</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredWall.map(w => (
                   <tr key={w.id}>
+                    <td>
+                      {isNew(w.created_at, lastVisit.current) && (
+                        <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>
+                      )}
+                    </td>
                     <td style={{ fontSize: '1.4rem' }}>{w.avatar}</td>
                     <td style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{w.name}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>📍 {w.city}</td>
-                    <td style={{ maxWidth: 320, color: '#666', lineHeight: 1.5 }}>"{w.note}"</td>
-                    <td style={{ whiteSpace: 'nowrap', color: '#555' }}>{fmt(w.created_at)}</td>
+                    <td style={{ maxWidth: 280, color: '#666', lineHeight: 1.5, fontSize: '0.82rem' }}>"{w.note}"</td>
+                    <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(w.created_at)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button className="icon-btn" style={iconBtn(w.approved ? GREEN : '#e09a52')}
+                          onClick={() => toggleApprove(w)} title={w.approved ? 'Remove from wall' : 'Approve for wall'}>
+                          {w.approved ? '✅ Live' : '⏳ Approve'}
+                        </button>
+                        <button className="icon-btn" style={iconBtn(RED)}
+                          onClick={() => setConfirmingDelete(`wall:${w.id}`)} title="Delete">
+                          🗑
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
