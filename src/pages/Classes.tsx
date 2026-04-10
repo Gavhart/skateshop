@@ -231,41 +231,6 @@ function Classes() {
           <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '1.5rem' }}>📅 Soon to be determined • 👤 6 max</p>
         </div>
 
-        {/* Street */}
-        <div
-          style={cardStyle(1)}
-          onMouseEnter={() => setHovered(1)}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔥</div>
-          <h3 style={{ color: '#c9a961', fontSize: '1.5rem', marginBottom: '0.5rem' }}>STREET TECHNIQUES</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>$25</p>
-          <ul style={{ listStyle: 'none', padding: 0, color: '#888', fontSize: '0.9rem', lineHeight: '2' }}>
-            <li>✓ Ollies &amp; kickflips</li>
-            <li>✓ Basic rail grinds</li>
-            <li>✓ Stair &amp; gap basics</li>
-            <li>✓ Park etiquette</li>
-          </ul>
-          <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '1.5rem' }}>📅 By appointment • 👤 4 max</p>
-        </div>
-
-        {/* Group */}
-        <div
-          style={cardStyle(2)}
-          onMouseEnter={() => setHovered(2)}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👥</div>
-          <h3 style={{ color: '#c9a961', fontSize: '1.5rem', marginBottom: '0.5rem' }}>SMALL GROUP</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>$15<span style={{ fontSize: '1rem', fontWeight: 'normal' }}>/person</span></p>
-          <ul style={{ listStyle: 'none', padding: 0, color: '#888', fontSize: '0.9rem', lineHeight: '2' }}>
-            <li>✓ 2–3 friends together</li>
-            <li>✓ Custom for your group</li>
-            <li>✓ More individual time</li>
-            <li>✓ Flexible scheduling</li>
-          </ul>
-          <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '1.5rem' }}>📅 By appointment • 👤 2–3 people</p>
-        </div>
       </div>
 
       {/* Signup Form */}
@@ -316,8 +281,6 @@ function Classes() {
               <select name="classType" required className="form-input">
                 <option value="">Select a class...</option>
                 <option value="beginner">🟢 Beginner Basics — FREE (Flexible)</option>
-                <option value="street">🟡 Street Techniques — $25 (Flexible)</option>
-                <option value="group">🔵 Small Group — $15/person (Flexible)</option>
               </select>
             </div>
 
