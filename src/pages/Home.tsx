@@ -257,6 +257,27 @@ export default function Home() {
   const [freshProducts, setFreshProducts] = useState<any[]>([])
   const [loadingFresh, setLoadingFresh] = useState(true)
 
+  const HEADLINES = [
+    'SKATE OR DIE',
+    'BUILT FOR THE STREETS',
+    'SOLDOTNA\'S SKATE HQ',
+    'RIDE WHAT YOU LOVE',
+    'LOCAL SHOP. REAL SKATERS.',
+  ]
+  const [headlineIdx, setHeadlineIdx] = useState(0)
+  const [headlineFading, setHeadlineFading] = useState(false)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeadlineFading(true)
+      setTimeout(() => {
+        setHeadlineIdx(i => (i + 1) % HEADLINES.length)
+        setHeadlineFading(false)
+      }, 400)
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
+
   useScrollReveal([freshProducts])
 
   useEffect(() => {
@@ -273,6 +294,14 @@ export default function Home() {
       {/* ── HERO ── */}
       <section className="hero">
         <div className="grain"></div>
+        <div className="hero-glow"></div>
+
+        {/* floating particles */}
+        <div className="hero-particles" aria-hidden="true">
+          {['🛹','⚡','✦','🔥','⭕','✦','🛹','⚡'].map((icon, i) => (
+            <span key={i} className={`particle particle-${i + 1}`}>{icon}</span>
+          ))}
+        </div>
 
         <div className="x-mark x-1"></div>
         <div className="x-mark x-2"></div>
@@ -281,6 +310,13 @@ export default function Home() {
 
         <div className="hero-logo reveal reveal-scale">
           <img src="/logo.jpeg" alt="Hart Boys Skate Shop" className="main-logo" />
+        </div>
+
+        {/* cycling animated headline */}
+        <div className="hero-headline-wrap" aria-live="polite">
+          <h2 className="hero-headline" style={{ opacity: headlineFading ? 0 : 1, transform: headlineFading ? 'translateY(8px)' : 'translateY(0)', transition: 'opacity 0.4s ease, transform 0.4s ease' }}>
+            {HEADLINES[headlineIdx]}
+          </h2>
         </div>
 
         <div className="tagline now-open reveal reveal-delay-1">
@@ -293,7 +329,16 @@ export default function Home() {
 
         <div className="hero-buttons reveal reveal-delay-3">
           <Link to="/shop" className="btn btn-primary">SHOP NOW</Link>
+          <Link to="/build" className="btn btn-hero-build">BUILD A BOARD</Link>
           <Link to="/classes" className="btn btn-secondary">SKATE CLASSES</Link>
+        </div>
+
+        {/* scroll indicator */}
+        <div className="hero-scroll-indicator" aria-hidden="true">
+          <div className="scroll-mouse">
+            <div className="scroll-dot"></div>
+          </div>
+          <span>SCROLL</span>
         </div>
       </section>
 
