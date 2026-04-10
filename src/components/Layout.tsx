@@ -10,13 +10,13 @@ function KonamiOverlay({ onDone }: { onDone: () => void }) {
     emoji: PARTICLES[i % PARTICLES.length],
     left: Math.random() * 100,
     delay: Math.random() * 0.6,
-    duration: 1.2 + Math.random() * 1,
+    duration: 2.2 + Math.random() * 1.5,
     size: 1.2 + Math.random() * 1.8,
     drift: (Math.random() - 0.5) * 120,
   }))
 
   useEffect(() => {
-    const t = setTimeout(onDone, 3200)
+    const t = setTimeout(onDone, 5000)
     return () => clearTimeout(t)
   }, [onDone])
 
@@ -60,7 +60,7 @@ function KonamiOverlay({ onDone }: { onDone: () => void }) {
 
       {/* Center flash */}
       <div style={{
-        animation: 'konamiPop 3s ease forwards',
+        animation: 'konamiPop 5s ease forwards',
         textAlign: 'center',
         userSelect: 'none',
       }}>
