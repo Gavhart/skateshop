@@ -108,8 +108,9 @@ export default function BuildABoard() {
         [stepId]: alreadyIn ? current.filter((p: any) => p.id !== product.id) : [...current, product]
       }))
     } else {
-      // Single select — replace
+      // Single select — replace, then auto-advance after a brief pause
       setSelections(prev => ({ ...prev, [stepId]: [product] }))
+      setTimeout(() => setStep(s => s + 1), 420)
     }
   }
 
