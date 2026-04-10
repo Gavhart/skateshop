@@ -131,8 +131,8 @@ export default function Shop() {
   const searchRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
 
-  // Re-run scroll reveal whenever products load or page changes
-  useScrollReveal([products, page])
+  // Re-run scroll reveal whenever products, page, or active filters change
+  useScrollReveal([products, page, activeCategory, activeSubcategory, searchTerm])
 
   // Persist cart to localStorage so items survive page navigation
   useEffect(() => {
