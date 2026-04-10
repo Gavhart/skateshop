@@ -23,6 +23,7 @@ function Layout() {
     { to: '/updates', label: 'UPDATES' },
     { to: '/about', label: 'ABOUT' },
     { to: '/classes', label: 'CLASSES' },
+    { to: '/wall', label: 'WALL OF STOKE' },
   ]
 
   return (
