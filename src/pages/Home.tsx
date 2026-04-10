@@ -279,8 +279,9 @@ function getSkateVerdict(code: number, tempF: number, windMph: number) {
 export default function Home() {
   const [freshProducts, setFreshProducts] = useState<any[]>([])
   const [loadingFresh, setLoadingFresh] = useState(true)
-  const [weather, setWeather] = useState<{ tempF: number; windMph: number; code: number; desc: string } | null>(null)
+  const [weather, setWeather] = useState<{ tempF: number; windMph: number; code: number; desc: string; city: string } | null>(null)
   const [weatherError, setWeatherError] = useState(false)
+  const [weatherLoading, setWeatherLoading] = useState(true)
 
   const HEADLINES = [
     'SKATE OR DIE',
@@ -322,19 +323,45 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    // Soldotna, AK coordinates
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=60.4872&longitude=-151.0553&current=temperature_2m,windspeed_10m,weathercode&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=America%2FAnchorage')
-      .then(r => r.json())
-      .then(data => {
+    async function fetchWeather(lat: number, lon: number, city: string) {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Anchorage'
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,windspeed_10m,weathercode&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=${encodeURIComponent(tz)}`
+        )
+        const data = await res.json()
         const c = data.current
-        setWeather({
-          tempF: c.temperature_2m,
-          windMph: c.windspeed_10m,
-          code: c.weathercode,
-          desc: WMO_DESC[c.weathercode] ?? 'Unknown',
-        })
-      })
-      .catch(() => setWeatherError(true))
+        setWeather({ tempF: c.temperature_2m, windMph: c.windspeed_10m, code: c.weathercode, desc: WMO_DESC[c.weathercode] ?? 'Unknown', city })
+      } catch {
+        setWeatherError(true)
+      } finally {
+        setWeatherLoading(false)
+      }
+    }
+
+    async function reverseGeocode(lat: number, lon: number): Promise<string> {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+        const data = await res.json()
+        return data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Your Location'
+      } catch {
+        return 'Your Location'
+      }
+    }
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords
+          const city = await reverseGeocode(latitude, longitude)
+          fetchWeather(latitude, longitude, city)
+        },
+        // If denied, fall back to Soldotna
+        () => fetchWeather(60.4872, -151.0553, 'Soldotna, AK')
+      )
+    } else {
+      fetchWeather(60.4872, -151.0553, 'Soldotna, AK')
+    }
   }, [])
 
   return (
@@ -517,12 +544,14 @@ export default function Home() {
       {/* ── SKATE DAY WIDGET ── */}
       {!weatherError && (
         <section className="reveal" style={{ padding: '4rem 1.5rem', maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-          <p className="section-eyebrow" style={{ marginBottom: '0.5rem' }}>📍 Soldotna, AK — Right Now</p>
+          <p className="section-eyebrow" style={{ marginBottom: '0.5rem' }}>
+            📍 {weather ? weather.city : 'Your Location'} — Right Now
+          </p>
           <h2 className="section-title" style={{ marginBottom: '2rem' }}>IS IT A SKATE DAY?</h2>
 
-          {!weather ? (
+          {weatherLoading ? (
             <div style={{ color: '#555', fontSize: '1rem', padding: '2rem' }}>Checking the weather...</div>
-          ) : (() => {
+          ) : !weather ? null : (() => {
             const { verdict, emoji, color, reason } = getSkateVerdict(weather.code, weather.tempF, weather.windMph)
             return (
               <div style={{
