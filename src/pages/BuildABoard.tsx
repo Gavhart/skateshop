@@ -79,9 +79,15 @@ export default function BuildABoard() {
   const [search, setSearch] = useState('')
   const [buildAndShip, setBuildAndShip] = useState(false)
 
+  // Find the free assembly service product by tag
+  const assemblyProduct = products.find(p =>
+    (p.tags || []).map((t: string) => t.toLowerCase()).includes('assembly-service')
+  )
+
   useEffect(() => {
     getProducts().then(prods => {
-      setProducts(prods.filter(p => !isExcluded(p)))
+      // Include assembly-service product even if it would normally be excluded
+      setProducts(prods.filter(p => !isExcluded(p) || (p.tags || []).map((t: string) => t.toLowerCase()).includes('assembly-service')))
       setLoading(false)
     })
   }, [])
@@ -151,10 +157,24 @@ export default function BuildABoard() {
       else merged.push(item)
     }
 
-    localStorage.setItem('hb_cart', JSON.stringify(merged))
-    if (buildAndShip) {
-      localStorage.setItem('hb_order_note', '🛹 Please assemble and ship this board complete.')
+    // If build & ship is checked, add the free assembly service product
+    if (buildAndShip && assemblyProduct) {
+      const variant = assemblyProduct.variants.edges[0]?.node
+      if (variant && !merged.find(i => i.variantId === variant.id)) {
+        merged.push({
+          variantId: variant.id,
+          title: assemblyProduct.title,
+          vendor: assemblyProduct.vendor || 'Hart Boys',
+          price: '0.00',
+          image: assemblyProduct.images.edges[0]?.node.url || '',
+          variantTitle: '',
+          productType: assemblyProduct.productType,
+          quantity: 1,
+        })
+      }
     }
+
+    localStorage.setItem('hb_cart', JSON.stringify(merged))
     setAdded(true)
     setTimeout(() => navigate('/shop?open_cart=1'), 900)
   }
@@ -467,13 +487,24 @@ export default function BuildABoard() {
                     }}>
                       {buildAndShip && <span style={{ color: BG, fontSize: '0.65rem', fontWeight: 900, lineHeight: 1 }}>✓</span>}
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <p style={{ margin: '0 0 0.2rem', color: TEXT, fontSize: '0.82rem', fontWeight: 700 }}>
-                        🛹 Build &amp; Ship Complete <span style={{ color: GREEN, fontSize: '0.7rem', fontWeight: 600 }}>FREE</span>
+                        🛹 Build &amp; Ship Complete{' '}
+                        <span style={{ color: GREEN, fontSize: '0.7rem', fontWeight: 700, background: 'rgba(74,222,128,0.1)', padding: '0.1rem 0.4rem', borderRadius: 4 }}>FREE</span>
                       </p>
                       <p style={{ margin: 0, color: MUTED, fontSize: '0.72rem', lineHeight: 1.5 }}>
-                        Check this and we'll assemble your board and ship it ready to skate — no extra charge.
+                        We'll assemble your board and ship it ready to skate — no extra charge.
                       </p>
+                      {buildAndShip && !assemblyProduct && (
+                        <p style={{ margin: '0.35rem 0 0', color: '#f87171', fontSize: '0.68rem' }}>
+                          ⚠ Assembly service product not found in store — please contact us.
+                        </p>
+                      )}
+                      {buildAndShip && assemblyProduct && (
+                        <p style={{ margin: '0.35rem 0 0', color: GREEN, fontSize: '0.68rem', fontWeight: 600 }}>
+                          ✓ "{assemblyProduct.title}" will be added to your cart
+                        </p>
+                      )}
                     </div>
                   </label>
 
