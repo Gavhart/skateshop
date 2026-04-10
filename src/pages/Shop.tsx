@@ -548,8 +548,8 @@ export default function Shop() {
         .mobile-top-bar {
           display: none;
           align-items: center;
-          gap: 0.625rem;
-          padding: 0.625rem 1rem;
+          gap: 0.5rem;
+          padding: 0.5rem 0.75rem;
           background: ${BG2};
           border-bottom: 1px solid ${BORDER};
           position: sticky;
@@ -557,14 +557,14 @@ export default function Shop() {
           z-index: 90;
         }
 
-        /* search bar sits below the filter bar (~44px tall) */
+        /* search bar sits below the filter bar */
         .mobile-search-bar {
           display: none;
-          padding: 0.5rem 1rem;
+          padding: 0.375rem 0.75rem;
           background: ${BG};
           border-bottom: 1px solid ${BORDER};
           position: sticky;
-          top: 112px;
+          top: 108px;
           z-index: 89;
         }
 
@@ -583,17 +583,22 @@ export default function Shop() {
 
         /* ── Small tablet / large phone (< 768px) ── */
         @media (max-width: 767px) {
-          .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.625rem; }
+          .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
           .cart-sidebar { width: 100vw !important; max-width: 100vw !important; }
-          .shop-layout { padding: 0.75rem; }
+          .shop-layout { padding: 0.5rem; }
         }
 
-        /* ── Mobile (< 600px): matches 60px navbar height ── */
+        /* ── Mobile (< 600px) ── */
         @media (max-width: 600px) {
-          .mobile-top-bar { top: 60px; }
-          .mobile-search-bar { top: 104px; }
-          .shop-layout { padding: 0.5rem; }
-          .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+          .mobile-top-bar { top: 60px; padding: 0.375rem 0.625rem; gap: 0.375rem; }
+          .mobile-search-bar { top: 100px; padding: 0.3rem 0.625rem; }
+          .shop-layout { padding: 0.375rem; }
+          .products-grid { grid-template-columns: repeat(2, 1fr); gap: 0.375rem; }
+          .card-info { padding: 0.4rem !important; gap: 0.2rem !important; }
+          .card-vendor { display: none !important; }
+          .card-title { font-size: 0.75rem !important; -webkit-line-clamp: 1 !important; }
+          .card-price { font-size: 0.85rem !important; }
+          .card-add-btn { padding: 0.3rem 0.375rem !important; font-size: 0.65rem !important; letter-spacing: 0 !important; }
         }
 
         /* ── Very small (< 360px): single column ── */
@@ -1039,9 +1044,9 @@ export default function Shop() {
             value={searchTerm}
             onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
             style={{
-              width: '100%', padding: '0.6rem 2rem 0.6rem 0.875rem',
+              width: '100%', padding: '0.45rem 2rem 0.45rem 0.75rem',
               background: BG3, border: `1px solid ${BORDER}`,
-              color: TEXT, borderRadius: 6, fontSize: '0.9rem',
+              color: TEXT, borderRadius: 6, fontSize: '0.85rem',
               outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box'
             }}
             onFocus={e => (e.target.style.borderColor = GOLD)}
@@ -1175,11 +1180,11 @@ export default function Shop() {
                       )}
                     </div>
 
-                    <div style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    <div className="card-info" style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                       {p.vendor && (
-                        <p style={{ margin: 0, color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>
+                        <p className="card-vendor" style={{ margin: 0, color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>
                       )}
-                      <h3 style={{ margin: 0, color: TEXT, fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
+                      <h3 className="card-title" style={{ margin: 0, color: TEXT, fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
                         {p.title}
                       </h3>
 
@@ -1202,8 +1207,8 @@ export default function Shop() {
                       )}
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '0.25rem', gap: '0.375rem' }}>
-                        <span style={{ color: TEXT, fontSize: '1rem', fontWeight: 700, flexShrink: 0 }}>${price.toFixed(2)}</span>
-                        <button className="add-btn" onClick={e => addToCart(p, e)} disabled={!inStock}
+                        <span className="card-price" style={{ color: TEXT, fontSize: '1rem', fontWeight: 700, flexShrink: 0 }}>${price.toFixed(2)}</span>
+                        <button className="add-btn card-add-btn" onClick={e => addToCart(p, e)} disabled={!inStock}
                           style={{
                             padding: '0.45rem 0.625rem',
                             background: justAdded ? '#1a3a1a' : (inStock ? GOLD : '#222'),
@@ -1213,7 +1218,7 @@ export default function Shop() {
                             cursor: inStock ? 'pointer' : 'not-allowed',
                             letterSpacing: '0.05em', whiteSpace: 'nowrap', fontFamily: 'inherit'
                           }}>
-                          {justAdded ? '✓ ADDED' : (inStock ? 'ADD TO CART' : 'SOLD OUT')}
+                          {justAdded ? '✓' : (inStock ? 'ADD' : '—')}
                         </button>
                       </div>
                     </div>
