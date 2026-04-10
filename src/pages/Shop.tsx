@@ -19,21 +19,21 @@ const CATEGORIES = [
     id: 'skate', label: 'Skate',
     subcategories: [
       { id: 'completes', label: 'Complete Setups', keywords: ['complete', 'pre-built', 'setup', 'complete skateboard', 'complete setup', 'completes'] },
-      { id: 'decks', label: 'Decks', keywords: ['deck', 'decks', 'skateboard deck', 'skateboard decks', 'skate deck', 'skate decks', 'skateboard'] },
-      { id: 'trucks', label: 'Trucks', keywords: ['truck', 'trucks', 'skateboard truck', 'skateboard trucks', 'independent', 'thunder', 'venture', 'ace', 'tensor', 'royal', 'grind king'] },
-      { id: 'wheels', label: 'Wheels', keywords: ['wheel', 'wheels', 'skateboard wheel', 'skateboard wheels', 'spitfire', 'bones', 'ricta', 'powell', 'ojii', 'santa cruz wheels', 'sector 9', 'blank wheel'] },
-      { id: 'bearings', label: 'Bearings', keywords: ['bearing', 'bearings', 'abec', 'bones reds', 'bones swiss', 'ceramic bearing'] },
-      { id: 'grip', label: 'Griptape', keywords: ['grip', 'griptape', 'grip tape', 'grizzly', 'mob', 'jessup', 'black magic', 'shake junt grip', 'clear grip'] },
-      { id: 'hardware', label: 'Hardware', keywords: ['hardware', 'bolt', 'bolts', 'nuts', 'nuts and bolts', 'mounting hardware', 'riser', 'risers', 'riser pad', 'axle', 'axle nuts'] },
+      { id: 'decks', label: 'Decks', keywords: ['deck', 'decks', 'skateboard deck', 'skateboard decks', 'skate deck', 'skate decks'] },
+      { id: 'trucks', label: 'Trucks', keywords: ['truck', 'trucks', 'skateboard truck', 'skateboard trucks'] },
+      { id: 'wheels', label: 'Wheels', keywords: ['wheel', 'wheels', 'skateboard wheel', 'skateboard wheels'] },
+      { id: 'bearings', label: 'Bearings', keywords: ['bearing', 'bearings', 'abec'] },
+      { id: 'grip', label: 'Griptape', keywords: ['grip', 'griptape', 'grip tape', 'grip tapes'] },
+      { id: 'hardware', label: 'Hardware', keywords: ['hardware', 'bolt', 'bolts', 'nuts and bolts', 'mounting hardware', 'riser', 'risers', 'riser pad', 'skate hardware'] },
     ]
   },
   {
     id: 'apparel', label: 'Apparel',
     subcategories: [
-      { id: 'tshirts', label: 'T-Shirts', keywords: ['shirt', 't-shirt', 'tee', 'tees', 't shirt', 'graphic tee', 'short sleeve', 'clothing', 'top'] },
+      { id: 'tshirts', label: 'T-Shirts', keywords: ['shirt', 't-shirt', 'tee', 'tees', 't shirt', 'short sleeve', 'top'] },
       { id: 'hoodies', label: 'Hoodies & Fleece', keywords: ['hoodie', 'hoodies', 'sweatshirt', 'crewneck', 'crew neck', 'fleece', 'pullover', 'zip up', 'zip-up', 'long sleeve'] },
-      { id: 'pants', label: 'Pants & Shorts', keywords: ['pant', 'pants', 'shorts', 'jeans', 'chino', 'chinos', 'jogger', 'joggers', 'denim', 'bottoms', 'trouser'] },
-      { id: 'hats', label: 'Hats & Beanies', keywords: ['hat', 'hats', 'cap', 'caps', 'beanie', 'beanies', 'snapback', 'fitted', 'headwear', 'dad hat', '5 panel', 'bucket hat'] },
+      { id: 'pants', label: 'Pants & Shorts', keywords: ['pant', 'pants', 'shorts', 'jeans', 'chino', 'chinos', 'jogger', 'joggers', 'denim', 'bottoms'] },
+      { id: 'hats', label: 'Hats & Beanies', keywords: ['hat', 'hats', 'cap', 'caps', 'beanie', 'beanies', 'snapback', 'fitted', 'headwear', 'dad hat', 'bucket hat'] },
       { id: 'socks', label: 'Socks', keywords: ['sock', 'socks'] },
     ]
   },
@@ -41,8 +41,8 @@ const CATEGORIES = [
     id: 'accessories', label: 'Accessories',
     subcategories: [
       { id: 'bags', label: 'Bags & Backpacks', keywords: ['bag', 'bags', 'backpack', 'backpacks', 'pack', 'tote', 'duffle', 'duffel', 'fanny', 'hip bag'] },
-      { id: 'protection', label: 'Protection', keywords: ['helmet', 'helmets', 'pad', 'pads', 'protective', 'guard', 'guards', 'knee', 'elbow', 'wrist guard', 'safety'] },
-      { id: 'other', label: 'Misc & Stickers', keywords: ['sticker', 'stickers', 'keychain', 'wax', 'skate tool', 'tool', 'accessory', 'accessories', 'misc', 'pins', 'patch', 'patches', 'lanyard'] },
+      { id: 'protection', label: 'Protection', keywords: ['helmet', 'helmets', 'pad', 'pads', 'protective', 'guard', 'guards', 'knee pad', 'elbow pad', 'wrist guard'] },
+      { id: 'other', label: 'Misc & Stickers', keywords: ['sticker', 'stickers', 'keychain', 'wax', 'skate tool', 'tool', 'accessory', 'accessories', 'misc', 'patch', 'patches', 'lanyard'] },
     ]
   }
 ]
