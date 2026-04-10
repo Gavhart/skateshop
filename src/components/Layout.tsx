@@ -8,16 +8,16 @@ function Layout() {
   const clickCount = useRef(0)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  function handleLogoClick(e: React.MouseEvent) {
+  function handleLogoTap(e: React.MouseEvent | React.TouchEvent) {
+    e.preventDefault()
     clickCount.current += 1
     if (clickTimer.current) clearTimeout(clickTimer.current)
     if (clickCount.current >= 3) {
       clickCount.current = 0
-      e.preventDefault()
       navigate('/admin')
     } else {
-      e.preventDefault()
-      clickTimer.current = setTimeout(() => { clickCount.current = 0 }, 800)
+      // 2000ms window — comfortable for mobile tapping
+      clickTimer.current = setTimeout(() => { clickCount.current = 0 }, 2000)
     }
   }
 
@@ -45,7 +45,7 @@ function Layout() {
   return (
     <div className="site">
       <nav className="navbar">
-        <Link to="/" className="logo" onClick={handleLogoClick}>
+        <Link to="/" className="logo" onClick={handleLogoTap} onTouchEnd={handleLogoTap}>
           <img src="/logo.jpeg" alt="Hart Boys" className="logo-img" />
         </Link>
 

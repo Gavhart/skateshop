@@ -190,6 +190,16 @@ export default function Admin() {
         .icon-btn:hover { background: rgba(255,255,255,0.06) !important; }
         .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex;
           align-items: center; justify-content: center; z-index: 100; }
+        .desktop-table { display: block; }
+        .mobile-cards { display: none; }
+        .mobile-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; }
+        .mobile-card-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; font-size: 0.85rem; }
+        .mobile-card-label { color: #555; font-size: 0.7rem; letter-spacing: 0.06em; font-weight: 600; }
+        .mobile-card-actions { display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap; }
+        @media(max-width: 700px) {
+          .desktop-table { display: none; }
+          .mobile-cards { display: block; padding: 1rem; }
+        }
       `}</style>
 
       {/* Delete confirm overlay */}
@@ -265,8 +275,8 @@ export default function Admin() {
         )}
       </div>
 
-      {/* Table */}
-      <div style={{ margin: '0 2rem', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'auto' }}>
+      {/* ── Desktop table ── */}
+      <div className="desktop-table" style={{ margin: '0 2rem', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'auto' }}>
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>Loading…</div>
         ) : tab === 'signups' ? (
@@ -274,28 +284,14 @@ export default function Admin() {
             <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No signups yet.</div>
           ) : (
             <table className="admin-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>NAME</th>
-                  <th>EMAIL</th>
-                  <th>PHONE</th>
-                  <th>AGE</th>
-                  <th>CLASS</th>
-                  <th>SKILL</th>
-                  <th>NOTES</th>
-                  <th>DATE</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
+              <thead><tr>
+                <th></th><th>NAME</th><th>EMAIL</th><th>PHONE</th><th>AGE</th>
+                <th>CLASS</th><th>SKILL</th><th>NOTES</th><th>DATE</th><th>ACTIONS</th>
+              </tr></thead>
               <tbody>
                 {filteredSignups.map(s => (
                   <tr key={s.id}>
-                    <td>
-                      {isNew(s.created_at, lastVisit.current) && (
-                        <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>
-                      )}
-                    </td>
+                    <td>{isNew(s.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>}</td>
                     <td style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{s.name}</td>
                     <td><a href={`mailto:${s.email}`} style={{ color: GOLD, textDecoration: 'none' }}>{s.email}</a></td>
                     <td style={{ whiteSpace: 'nowrap' }}>{s.phone || '—'}</td>
@@ -306,18 +302,11 @@ export default function Admin() {
                     <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(s.created_at)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <button className="icon-btn" style={iconBtn(s.confirmed ? GREEN : '#555')}
-                          onClick={() => toggleConfirm(s)} title={s.confirmed ? 'Mark unconfirmed' : 'Mark confirmed'}>
+                        <button className="icon-btn" style={iconBtn(s.confirmed ? GREEN : '#555')} onClick={() => toggleConfirm(s)}>
                           {s.confirmed ? '✅ Confirmed' : '○ Confirm'}
                         </button>
-                        <a href={`mailto:${s.email}?subject=Your Hart Boys Class Signup&body=Hey ${s.name.split(' ')[0]},%0A%0AThanks for signing up!`}
-                          style={{ ...iconBtn('#888'), textDecoration: 'none', display: 'inline-block' }} title="Reply by email">
-                          ✉
-                        </a>
-                        <button className="icon-btn" style={iconBtn(RED)}
-                          onClick={() => setConfirmingDelete(`signup:${s.id}`)} title="Delete">
-                          🗑
-                        </button>
+                        <a href={`mailto:${s.email}?subject=Your Hart Boys Class Signup&body=Hey ${s.name.split(' ')[0]},%0A%0AThanks for signing up!`} style={{ ...iconBtn('#888'), textDecoration: 'none', display: 'inline-block' }}>✉</a>
+                        <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`signup:${s.id}`)}>🗑</button>
                       </div>
                     </td>
                   </tr>
@@ -330,25 +319,13 @@ export default function Admin() {
             <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No entries yet.</div>
           ) : (
             <table className="admin-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>AVATAR</th>
-                  <th>NAME</th>
-                  <th>CITY</th>
-                  <th>NOTE</th>
-                  <th>DATE</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
+              <thead><tr>
+                <th></th><th>AVATAR</th><th>NAME</th><th>CITY</th><th>NOTE</th><th>DATE</th><th>ACTIONS</th>
+              </tr></thead>
               <tbody>
                 {filteredWall.map(w => (
                   <tr key={w.id}>
-                    <td>
-                      {isNew(w.created_at, lastVisit.current) && (
-                        <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>
-                      )}
-                    </td>
+                    <td>{isNew(w.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>}</td>
                     <td style={{ fontSize: '1.4rem' }}>{w.avatar}</td>
                     <td style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{w.name}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>📍 {w.city}</td>
@@ -356,12 +333,10 @@ export default function Admin() {
                     <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(w.created_at)}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <button className="icon-btn" style={iconBtn(w.approved ? GREEN : '#e09a52')}
-                          onClick={() => toggleApprove(w)} title={w.approved ? 'Remove from wall' : 'Approve for wall'}>
+                        <button className="icon-btn" style={iconBtn(w.approved ? GREEN : '#e09a52')} onClick={() => toggleApprove(w)}>
                           {w.approved ? '✅ Live' : '⏳ Approve'}
                         </button>
-                        <button className="icon-btn" style={iconBtn(RED)}
-                          onClick={() => setConfirmingDelete(`wall:${w.id}`)} title="Delete">
+                        <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`wall:${w.id}`)}>
                           🗑
                         </button>
                       </div>
@@ -373,6 +348,69 @@ export default function Admin() {
           )
         )}
       </div>
+
+      {/* ── Mobile cards ── */}
+      {!loading && (
+        <div className="mobile-cards">
+          {tab === 'signups' ? (
+            filteredSignups.length === 0 ? (
+              <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No signups yet.</p>
+            ) : filteredSignups.map(s => (
+              <div key={s.id} className="mobile-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div>
+                    <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem' }}>{s.name}</span>
+                    {isNew(s.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem', marginLeft: '0.5rem' }}>NEW</span>}
+                  </div>
+                  <span style={{ color: '#555', fontSize: '0.72rem' }}>{fmt(s.created_at)}</span>
+                </div>
+                <div className="mobile-card-label">EMAIL</div>
+                <a href={`mailto:${s.email}`} style={{ color: GOLD, fontSize: '0.88rem', textDecoration: 'none' }}>{s.email}</a>
+                {s.phone && <><div className="mobile-card-label" style={{ marginTop: '0.5rem' }}>PHONE</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{s.phone}</div></>}
+                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
+                  {s.age && <div><div className="mobile-card-label">AGE</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{s.age}</div></div>}
+                  <div><div className="mobile-card-label">CLASS</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{CLASS_LABELS[s.class_type] || s.class_type}</div></div>
+                  <div><div className="mobile-card-label">SKILL</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{SKILL_LABELS[s.skill_level || ''] || '—'}</div></div>
+                </div>
+                {s.message && <><div className="mobile-card-label" style={{ marginTop: '0.5rem' }}>NOTES</div><div style={{ color: '#666', fontSize: '0.85rem' }}>{s.message}</div></>}
+                <div className="mobile-card-actions">
+                  <button className="icon-btn" style={{ ...iconBtn(s.confirmed ? GREEN : '#555'), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => toggleConfirm(s)}>
+                    {s.confirmed ? '✅ Confirmed' : '○ Confirm'}
+                  </button>
+                  <a href={`mailto:${s.email}?subject=Your Hart Boys Class Signup&body=Hey ${s.name.split(' ')[0]},%0A%0AThanks for signing up!`}
+                    style={{ ...iconBtn('#888'), textDecoration: 'none', display: 'inline-block', padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}>✉ Reply</a>
+                  <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => setConfirmingDelete(`signup:${s.id}`)}>🗑 Delete</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            filteredWall.length === 0 ? (
+              <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No entries yet.</p>
+            ) : filteredWall.map(w => (
+              <div key={w.id} className="mobile-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.8rem' }}>{w.avatar}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ color: '#fff', fontWeight: 700 }}>{w.name}</span>
+                      {isNew(w.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>}
+                    </div>
+                    <div style={{ color: '#555', fontSize: '0.78rem' }}>📍 {w.city}</div>
+                  </div>
+                  <span style={{ color: '#555', fontSize: '0.72rem' }}>{fmt(w.created_at)}</span>
+                </div>
+                <p style={{ color: '#666', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 0.85rem' }}>"{w.note}"</p>
+                <div className="mobile-card-actions">
+                  <button className="icon-btn" style={{ ...iconBtn(w.approved ? GREEN : '#e09a52'), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => toggleApprove(w)}>
+                    {w.approved ? '✅ Live' : '⏳ Approve'}
+                  </button>
+                  <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => setConfirmingDelete(`wall:${w.id}`)}>🗑 Delete</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }
