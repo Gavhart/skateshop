@@ -245,7 +245,11 @@ export default function BuildABoard() {
                     fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     position: 'relative',
                   }}>
-                    {done && !active ? '✓' : s.icon}
+                    {done && !active ? '✓' : s.id === 'trucks' ? (
+                      <div style={{ width: 30, height: 30, overflow: 'hidden', borderRadius: 4 }}>
+                        <img src="/trucks.png" alt="trucks" style={{ width: 52, height: 52, objectFit: 'cover', objectPosition: 'center 20%', marginLeft: -11, marginTop: -4 }} />
+                      </div>
+                    ) : s.icon}
                     {done && count > 1 && (
                       <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, background: GOLD, borderRadius: '50%', fontSize: '0.55rem', color: BG, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{count}</span>
                     )}
@@ -277,7 +281,10 @@ export default function BuildABoard() {
             <div className="reveal" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
               <div>
                 <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.2rem', letterSpacing: '-0.01em' }}>
-                  {currentStep.icon} Step {step + 1}: Choose Your {currentStep.label}
+                  {currentStep.id === 'trucks'
+                    ? <img src="/trucks.png" alt="trucks" style={{ width: 28, height: 20, objectFit: 'cover', objectPosition: 'center 20%', verticalAlign: 'middle', marginRight: 4, borderRadius: 3 }} />
+                    : currentStep.icon
+                  } Step {step + 1}: Choose Your {currentStep.label}
                 </h2>
                 <p style={{ color: MUTED, fontSize: '0.82rem', margin: 0 }}>
                   {currentStep.description}
