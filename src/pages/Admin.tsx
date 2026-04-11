@@ -325,7 +325,7 @@ export default function Admin() {
                           {s.confirmed ? '✅ Confirmed' : '○ Confirm'}
                         </button>
                         <a href={`mailto:${s.email}?subject=Your Hart Boys Class Signup&body=Hey ${s.name.split(' ')[0]},%0A%0AThanks for signing up!`} style={{ ...iconBtn('#888'), textDecoration: 'none', display: 'inline-block' }}>✉</a>
-                        <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`signup:${s.id}`)}>🗑</button>
+                        <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.3rem 0.75rem' }} onClick={() => setConfirmingDelete(`signup:${s.id}`)}>🗑 Delete</button>
                       </div>
                     </td>
                   </tr>
