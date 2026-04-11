@@ -40,7 +40,11 @@ export async function insertClassSignup(data: Omit<ClassSignup, 'id' | 'created_
     headers: { ...HEADERS, 'Prefer': 'return=minimal' },
     body: JSON.stringify(data),
   })
-  if (!res.ok) throw new Error('Failed to save signup')
+  if (!res.ok) {
+    const errText = await res.text()
+    console.error('Supabase insert error:', res.status, errText)
+    throw new Error(`Failed to save signup (${res.status}): ${errText}`)
+  }
 }
 
 export async function fetchClassSignups(): Promise<ClassSignup[]> {

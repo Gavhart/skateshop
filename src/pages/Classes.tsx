@@ -32,8 +32,9 @@ function Classes() {
       setSubmitted(true)
       form.reset()
       setSkill('')
-    } catch {
-      alert('Something went wrong. Please try again.')
+    } catch (err) {
+      console.error('Signup error:', err)
+      alert(`Something went wrong: ${err instanceof Error ? err.message : 'Please try again.'}`)
     } finally {
       setLoading(false)
     }
