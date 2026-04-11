@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+// Canvas drawing is handled via native event listeners in useEffect (passive: false for touch)
 import { Link } from 'react-router-dom'
 import { insertWaiver } from '../lib/supabase'
 
@@ -10,14 +11,25 @@ const MUTED = '#888'
 
 export default function WaiverSign() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [drawing, setDrawing] = useState(false)
+  const isDrawing = useRef(false)
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
   const [hasSig, setHasSig] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  const getPosFromEvent = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const src = 'touches' in e ? e.touches[0] : e
+    return {
+      x: (src.clientX - rect.left) * scaleX,
+      y: (src.clientY - rect.top) * scaleY,
+    }
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -26,58 +38,54 @@ export default function WaiverSign() {
     if (!ctx) return
     ctx.fillStyle = '#111'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = GOLD
-    ctx.lineWidth = 2
-    ctx.lineCap = 'round'
-    ctx.lineJoin = 'round'
+
+    const onStart = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault()
+      isDrawing.current = true
+      lastPos.current = getPosFromEvent(e, canvas)
+    }
+
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault()
+      if (!isDrawing.current || !lastPos.current) return
+      const c = canvas.getContext('2d')!
+      c.strokeStyle = GOLD
+      c.lineWidth = 2.5
+      c.lineCap = 'round'
+      c.lineJoin = 'round'
+      const pos = getPosFromEvent(e, canvas)
+      c.beginPath()
+      c.moveTo(lastPos.current.x, lastPos.current.y)
+      c.lineTo(pos.x, pos.y)
+      c.stroke()
+      lastPos.current = pos
+      setHasSig(true)
+    }
+
+    const onEnd = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault()
+      isDrawing.current = false
+      lastPos.current = null
+    }
+
+    canvas.addEventListener('mousedown', onStart)
+    canvas.addEventListener('mousemove', onMove)
+    canvas.addEventListener('mouseup', onEnd)
+    canvas.addEventListener('mouseleave', onEnd)
+    canvas.addEventListener('touchstart', onStart, { passive: false })
+    canvas.addEventListener('touchmove', onMove, { passive: false })
+    canvas.addEventListener('touchend', onEnd, { passive: false })
+
+    return () => {
+      canvas.removeEventListener('mousedown', onStart)
+      canvas.removeEventListener('mousemove', onMove)
+      canvas.removeEventListener('mouseup', onEnd)
+      canvas.removeEventListener('mouseleave', onEnd)
+      canvas.removeEventListener('touchstart', onStart)
+      canvas.removeEventListener('touchmove', onMove)
+      canvas.removeEventListener('touchend', onEnd)
+    }
   }, [])
-
-  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
-    const rect = canvas.getBoundingClientRect()
-    const scaleX = canvas.width / rect.width
-    const scaleY = canvas.height / rect.height
-    if ('touches' in e) {
-      const touch = e.touches[0]
-      return {
-        x: (touch.clientX - rect.left) * scaleX,
-        y: (touch.clientY - rect.top) * scaleY,
-      }
-    }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
-    }
-  }
-
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
-    const canvas = canvasRef.current
-    if (!canvas) return
-    setDrawing(true)
-    lastPos.current = getPos(e, canvas)
-  }
-
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
-    if (!drawing) return
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx || !lastPos.current) return
-    const pos = getPos(e, canvas)
-    ctx.beginPath()
-    ctx.moveTo(lastPos.current.x, lastPos.current.y)
-    ctx.lineTo(pos.x, pos.y)
-    ctx.stroke()
-    lastPos.current = pos
-    setHasSig(true)
-  }
-
-  const stopDraw = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
-    setDrawing(false)
-    lastPos.current = null
-  }
 
   const clearSig = () => {
     const canvas = canvasRef.current
@@ -239,13 +247,7 @@ export default function WaiverSign() {
               width={640}
               height={160}
               className="sig-canvas"
-              onMouseDown={startDraw}
-              onMouseMove={draw}
-              onMouseUp={stopDraw}
-              onMouseLeave={stopDraw}
-              onTouchStart={startDraw}
-              onTouchMove={draw}
-              onTouchEnd={stopDraw}
+              style={{ touchAction: 'none', userSelect: 'none' }}
             />
             {!hasSig && (
               <p style={{ color: '#555', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.5rem', fontStyle: 'italic' }}>
