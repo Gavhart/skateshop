@@ -242,13 +242,32 @@ function Classes() {
 
       </div>
 
+      {/* Waiver CTA */}
+      <div style={{ maxWidth: 600, margin: '0 auto 2rem', padding: '0 2rem' }}>
+        <div style={{ background: 'rgba(201,169,97,0.07)', border: '1px solid rgba(201,169,97,0.25)', borderRadius: 10, padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <p style={{ color: '#c9a961', fontWeight: 700, margin: '0 0 0.2rem', fontSize: '0.9rem' }}>✍️ Waiver Required</p>
+            <p style={{ color: '#666', margin: 0, fontSize: '0.82rem' }}>Sign digitally before your first session</p>
+          </div>
+          <Link to="/waiver-sign" style={{ background: '#c9a961', color: '#0a0a0a', padding: '0.65rem 1.5rem', borderRadius: 7, textDecoration: 'none', fontWeight: 800, fontSize: '0.88rem', whiteSpace: 'nowrap' }}>
+            Sign Waiver →
+          </Link>
+        </div>
+      </div>
+
       {/* Signup Form */}
       <div className="classes-form-wrap">
         {submitted ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>🤘</p>
             <h3 style={{ color: '#c9a961', fontSize: '2rem', marginBottom: '1rem' }}>You're booked!</h3>
-            <p style={{ color: '#888', marginBottom: '2rem' }}>Check your email. Bring your signed <Link to="/waiver" style={{ color: '#c9a961' }}>waiver</Link>!</p>
+            <p style={{ color: '#888', marginBottom: '1.25rem' }}>Check your email. Don't forget your signed waiver!</p>
+            <Link
+              to="/waiver-sign"
+              style={{ display: 'inline-block', marginBottom: '2rem', padding: '0.85rem 2rem', background: '#c9a961', color: '#0a0a0a', fontWeight: 800, borderRadius: 8, textDecoration: 'none', fontSize: '0.95rem' }}
+            >
+              ✍️ Sign Waiver Now →
+            </Link>
             <button
               onClick={() => setSubmitted(false)}
               style={{ padding: '1rem 2rem', background: 'transparent', border: '1px solid #c9a961', color: '#c9a961', cursor: 'pointer', borderRadius: '6px' }}

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import {
   fetchClassSignups, confirmSignup, deleteSignup,
   fetchStokeEntries, approveWallEntry, deleteWallEntry,
-  type ClassSignup, type StokeEntry,
+  fetchWaivers, deleteWaiver,
+  type ClassSignup, type StokeEntry, type Waiver,
 } from '../lib/supabase'
 
 const ADMIN_PASSWORD = 'dropIn@HB26'
@@ -14,7 +15,7 @@ const BG = '#0a0a0a'
 const CARD = '#111'
 const BORDER = '#1e1e1e'
 
-type Tab = 'signups' | 'wall'
+type Tab = 'signups' | 'wall' | 'waivers'
 
 const CLASS_LABELS: Record<string, string> = {
   beginner: '🟢 Beginner Basics',
@@ -61,6 +62,7 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('signups')
   const [signups, setSignups] = useState<ClassSignup[]>([])
   const [wall, setWall] = useState<StokeEntry[]>([])
+  const [waivers, setWaivers] = useState<Waiver[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
@@ -84,8 +86,8 @@ export default function Admin() {
   useEffect(() => {
     if (!authed) return
     setLoading(true)
-    Promise.all([fetchClassSignups(), fetchStokeEntries(false)])
-      .then(([s, w]) => { setSignups(s); setWall(w) })
+    Promise.all([fetchClassSignups(), fetchStokeEntries(false), fetchWaivers()])
+      .then(([s, w, wv]) => { setSignups(s); setWall(w); setWaivers(wv) })
       .finally(() => setLoading(false))
   }, [authed])
 
@@ -110,6 +112,12 @@ export default function Admin() {
   async function handleDeleteWall(id: string) {
     await deleteWallEntry(id)
     setWall(prev => prev.filter(x => x.id !== id))
+    setConfirmingDelete(null)
+  }
+
+  async function handleDeleteWaiver(id: string) {
+    await deleteWaiver(id)
+    setWaivers(prev => prev.filter(x => x.id !== id))
     setConfirmingDelete(null)
   }
 
@@ -166,6 +174,10 @@ export default function Admin() {
   const newSignups = signups.filter(s => isNew(s.created_at, lastVisit.current)).length
   const newWall = wall.filter(w => isNew(w.created_at, lastVisit.current)).length
   const pendingWall = wall.filter(w => !w.approved).length
+  const newWaivers = waivers.filter(w => isNew(w.created_at, lastVisit.current)).length
+  const filteredWaivers = waivers.filter(w =>
+    !q || w.name.toLowerCase().includes(q) || w.email.toLowerCase().includes(q)
+  )
 
   // ── Dashboard ─────────────────────────────────────────────────────────────
 
@@ -215,7 +227,9 @@ export default function Admin() {
               </button>
               <button onClick={() => {
                 const [type, id] = confirmingDelete.split(':')
-                type === 'signup' ? handleDeleteSignup(id) : handleDeleteWall(id)
+                if (type === 'signup') handleDeleteSignup(id)
+                else if (type === 'wall') handleDeleteWall(id)
+                else handleDeleteWaiver(id)
               }} style={{ padding: '0.6rem 1.4rem', background: RED, border: 'none', color: '#fff', borderRadius: 7, cursor: 'pointer', fontWeight: 700 }}>
                 Delete
               </button>
@@ -243,6 +257,7 @@ export default function Admin() {
           { label: 'Confirmed', value: signups.filter(s => s.confirmed).length, icon: '✅', accent: GREEN },
           { label: 'Wall Entries', value: wall.length, icon: '🤘', accent: GOLD },
           { label: 'Pending Review', value: pendingWall, icon: '⏳', accent: '#e09a52' },
+          { label: 'Signed Waivers', value: waivers.length, icon: '✍️', accent: '#7eb8f7' },
         ].map(stat => (
           <div key={stat.label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1.1rem 1.25rem' }}>
             <div style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>{stat.icon}</div>
@@ -262,6 +277,10 @@ export default function Admin() {
           WALL OF STOKE ({wall.length})
           {newWall > 0 && <span className="new-dot">{newWall} NEW</span>}
           {pendingWall > 0 && <span className="pending-dot">{pendingWall} PENDING</span>}
+        </button>
+        <button className={`admin-tab${tab === 'waivers' ? ' active' : ''}`} onClick={() => setTab('waivers')}>
+          WAIVERS ({waivers.length})
+          {newWaivers > 0 && <span className="new-dot">{newWaivers} NEW</span>}
         </button>
         <input style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: 140, maxWidth: 260, padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
           placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -314,7 +333,7 @@ export default function Admin() {
               </tbody>
             </table>
           )
-        ) : (
+        ) : tab === 'wall' ? (
           filteredWall.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No entries yet.</div>
           ) : (
@@ -340,6 +359,32 @@ export default function Admin() {
                           🗑
                         </button>
                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        ) : (
+          filteredWaivers.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No signed waivers yet.</div>
+          ) : (
+            <table className="admin-table">
+              <thead><tr>
+                <th></th><th>NAME</th><th>EMAIL</th><th>SIGNATURE</th><th>DATE</th><th>ACTIONS</th>
+              </tr></thead>
+              <tbody>
+                {filteredWaivers.map(wv => (
+                  <tr key={wv.id}>
+                    <td>{isNew(wv.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem' }}>NEW</span>}</td>
+                    <td style={{ color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>{wv.name}</td>
+                    <td><a href={`mailto:${wv.email}`} style={{ color: GOLD, textDecoration: 'none' }}>{wv.email}</a></td>
+                    <td>
+                      <img src={wv.signature_data} alt="signature" style={{ height: 40, border: '1px solid #2a2a2a', borderRadius: 4, background: '#111', display: 'block' }} />
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(wv.created_at)}</td>
+                    <td>
+                      <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`waiver:${wv.id}`)}>🗑</button>
                     </td>
                   </tr>
                 ))}
@@ -383,7 +428,7 @@ export default function Admin() {
                 </div>
               </div>
             ))
-          ) : (
+          ) : tab === 'wall' ? (
             filteredWall.length === 0 ? (
               <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No entries yet.</p>
             ) : filteredWall.map(w => (
@@ -405,6 +450,27 @@ export default function Admin() {
                     {w.approved ? '✅ Live' : '⏳ Approve'}
                   </button>
                   <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => setConfirmingDelete(`wall:${w.id}`)}>🗑 Delete</button>
+                </div>
+              </div>
+            ))
+          ) : (
+            filteredWaivers.length === 0 ? (
+              <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No signed waivers yet.</p>
+            ) : filteredWaivers.map(wv => (
+              <div key={wv.id} className="mobile-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{wv.name}</span>
+                    {isNew(wv.created_at, lastVisit.current) && <span style={{ background: RED, color: '#fff', borderRadius: 8, fontSize: '0.6rem', fontWeight: 800, padding: '0.1rem 0.4rem', marginLeft: '0.5rem' }}>NEW</span>}
+                  </div>
+                  <span style={{ color: '#555', fontSize: '0.72rem' }}>{fmt(wv.created_at)}</span>
+                </div>
+                <div className="mobile-card-label">EMAIL</div>
+                <a href={`mailto:${wv.email}`} style={{ color: GOLD, fontSize: '0.88rem', textDecoration: 'none' }}>{wv.email}</a>
+                <div className="mobile-card-label" style={{ marginTop: '0.75rem' }}>SIGNATURE</div>
+                <img src={wv.signature_data} alt="signature" style={{ height: 48, border: '1px solid #2a2a2a', borderRadius: 6, background: '#111', marginTop: '0.3rem', display: 'block' }} />
+                <div className="mobile-card-actions">
+                  <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => setConfirmingDelete(`waiver:${wv.id}`)}>🗑 Delete</button>
                 </div>
               </div>
             ))

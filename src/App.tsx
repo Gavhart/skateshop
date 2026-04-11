@@ -9,6 +9,7 @@ import Classes from './pages/Classes'
 import OrderSuccess from './pages/OrderSuccess'
 import BuildABoard from './pages/BuildABoard'
 import WallOfStoke from './pages/WallOfStoke'
+import WaiverSign from './pages/WaiverSign'
 import Admin from './pages/Admin'
 import './App.css'
 
@@ -26,6 +27,7 @@ function App() {
         <Route path="build" element={<BuildABoard />} />
         <Route path="wall" element={<WallOfStoke />} />
       </Route>
+      <Route path="waiver-sign" element={<WaiverSign />} />
       <Route path="admin" element={<Admin />} />
     </Routes>
   )

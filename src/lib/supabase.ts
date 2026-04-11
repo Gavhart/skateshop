@@ -73,6 +73,47 @@ export async function deleteSignup(id: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete signup')
 }
 
+// ── Waivers ────────────────────────────────────────────────────────────────
+
+export interface Waiver {
+  id: string
+  name: string
+  email: string
+  signature_data: string
+  agreed_at: string
+  created_at: string
+}
+
+export async function insertWaiver(data: { name: string; email: string; signature_data: string }): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/waivers`, {
+    method: 'POST',
+    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const errText = await res.text()
+    console.error('Waiver insert error:', res.status, errText)
+    throw new Error(`Failed to save waiver (${res.status}): ${errText}`)
+  }
+}
+
+export async function fetchWaivers(): Promise<Waiver[]> {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/waivers?select=*&order=created_at.desc`,
+    { headers: HEADERS }
+  )
+  if (!res.ok) throw new Error('Failed to fetch waivers')
+  return res.json()
+}
+
+export async function deleteWaiver(id: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/waivers?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: HEADERS,
+  })
+  if (!res.ok) throw new Error('Failed to delete waiver')
+}
+
 // ── Wall of Stoke ──────────────────────────────────────────────────────────
 
 export async function fetchStokeEntries(approvedOnly = false): Promise<StokeEntry[]> {
