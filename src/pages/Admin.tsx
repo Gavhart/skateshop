@@ -190,6 +190,8 @@ export default function Admin() {
         .admin-table td { padding: 0.8rem 0.85rem; border-bottom: 1px solid #161616; color: #aaa; vertical-align: middle; }
         .admin-table tr:last-child td { border-bottom: none; }
         .admin-table tr:hover td { background: #141414; }
+        .admin-table .sticky-col { position: sticky; right: 0; background: #111; z-index: 1; box-shadow: -4px 0 8px rgba(0,0,0,0.4); }
+        .admin-table tr:hover .sticky-col { background: #141414; }
         .admin-tab { padding: 0.55rem 1.2rem; border: 1px solid #222; border-radius: 6px;
           background: none; color: #555; cursor: pointer; font-size: 0.78rem; font-weight: 700;
           letter-spacing: 0.06em; transition: all 0.15s; position: relative; }
@@ -305,7 +307,8 @@ export default function Admin() {
             <table className="admin-table">
               <thead><tr>
                 <th></th><th>NAME</th><th>EMAIL</th><th>PHONE</th><th>AGE</th>
-                <th>CLASS</th><th>SKILL</th><th>NOTES</th><th>DATE</th><th>ACTIONS</th>
+                <th>CLASS</th><th>SKILL</th><th>NOTES</th><th>DATE</th>
+                <th className="sticky-col">ACTIONS</th>
               </tr></thead>
               <tbody>
                 {filteredSignups.map(s => (
@@ -319,7 +322,7 @@ export default function Admin() {
                     <td style={{ whiteSpace: 'nowrap' }}>{SKILL_LABELS[s.skill_level || ''] || s.skill_level || '—'}</td>
                     <td style={{ maxWidth: 180, color: '#666', fontSize: '0.82rem' }}>{s.message || '—'}</td>
                     <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(s.created_at)}</td>
-                    <td>
+                    <td className="sticky-col">
                       <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                         <button className="icon-btn" style={iconBtn(s.confirmed ? GREEN : '#555')} onClick={() => toggleConfirm(s)}>
                           {s.confirmed ? '✅ Confirmed' : '○ Confirm'}
@@ -339,7 +342,8 @@ export default function Admin() {
           ) : (
             <table className="admin-table">
               <thead><tr>
-                <th></th><th>AVATAR</th><th>NAME</th><th>CITY</th><th>NOTE</th><th>DATE</th><th>ACTIONS</th>
+                <th></th><th>AVATAR</th><th>NAME</th><th>CITY</th><th>NOTE</th><th>DATE</th>
+                <th className="sticky-col">ACTIONS</th>
               </tr></thead>
               <tbody>
                 {filteredWall.map(w => (
@@ -350,13 +354,13 @@ export default function Admin() {
                     <td style={{ whiteSpace: 'nowrap' }}>📍 {w.city}</td>
                     <td style={{ maxWidth: 280, color: '#666', lineHeight: 1.5, fontSize: '0.82rem' }}>"{w.note}"</td>
                     <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(w.created_at)}</td>
-                    <td>
+                    <td className="sticky-col">
                       <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
                         <button className="icon-btn" style={iconBtn(w.approved ? GREEN : '#e09a52')} onClick={() => toggleApprove(w)}>
                           {w.approved ? '✅ Live' : '⏳ Approve'}
                         </button>
-                        <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`wall:${w.id}`)}>
-                          🗑
+                        <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.3rem 0.75rem' }} onClick={() => setConfirmingDelete(`wall:${w.id}`)}>
+                          🗑 Delete
                         </button>
                       </div>
                     </td>
@@ -371,7 +375,8 @@ export default function Admin() {
           ) : (
             <table className="admin-table">
               <thead><tr>
-                <th></th><th>NAME</th><th>EMAIL</th><th>SIGNATURE</th><th>DATE</th><th>ACTIONS</th>
+                <th></th><th>NAME</th><th>EMAIL</th><th>SIGNATURE</th><th>DATE</th>
+                <th className="sticky-col">ACTIONS</th>
               </tr></thead>
               <tbody>
                 {filteredWaivers.map(wv => (
@@ -383,8 +388,8 @@ export default function Admin() {
                       <img src={wv.signature_data} alt="signature" style={{ height: 40, border: '1px solid #2a2a2a', borderRadius: 4, background: '#111', display: 'block' }} />
                     </td>
                     <td style={{ whiteSpace: 'nowrap', color: '#555', fontSize: '0.78rem' }}>{fmt(wv.created_at)}</td>
-                    <td>
-                      <button className="icon-btn" style={iconBtn(RED)} onClick={() => setConfirmingDelete(`waiver:${wv.id}`)}>🗑</button>
+                    <td className="sticky-col">
+                      <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.3rem 0.75rem' }} onClick={() => setConfirmingDelete(`waiver:${wv.id}`)}>🗑 Delete</button>
                     </td>
                   </tr>
                 ))}
