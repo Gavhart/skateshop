@@ -247,7 +247,7 @@ export default function BuildABoard() {
                   }}>
                     {done && !active ? '✓' : s.id === 'trucks' ? (
                       <div style={{ width: 30, height: 30, overflow: 'hidden', borderRadius: 4 }}>
-                        <img src="/trucks.png" alt="trucks" style={{ width: 52, height: 52, objectFit: 'cover', objectPosition: 'center 20%', marginLeft: -11, marginTop: -4 }} />
+                        <img src="/trucks.webp" alt="trucks" style={{ width: 52, height: 52, objectFit: 'cover', objectPosition: 'center 20%', marginLeft: -11, marginTop: -4 }} />
                       </div>
                     ) : s.icon}
                     {done && count > 1 && (
@@ -282,7 +282,7 @@ export default function BuildABoard() {
               <div>
                 <h2 style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.2rem', letterSpacing: '-0.01em' }}>
                   {currentStep.id === 'trucks'
-                    ? <img src="/trucks.png" alt="trucks" style={{ width: 28, height: 20, objectFit: 'cover', objectPosition: 'center 20%', verticalAlign: 'middle', marginRight: 4, borderRadius: 3 }} />
+                    ? <img src="/trucks.webp" alt="trucks" style={{ width: 28, height: 20, objectFit: 'cover', objectPosition: 'center 20%', verticalAlign: 'middle', marginRight: 4, borderRadius: 3 }} />
                     : currentStep.icon
                   } Step {step + 1}: Choose Your {currentStep.label}
                 </h2>
