@@ -36,24 +36,56 @@ function About() {
         .about-owner-layout {
           display: grid;
           grid-template-columns: 420px 1fr;
-          gap: 4rem;
+          gap: 2.25rem 4rem;
+          grid-template-areas:
+            "portrait head"
+            "bridge tail";
           align-items: start;
+        }
+
+        .about-owner-portrait-cell {
+          grid-area: portrait;
+        }
+
+        .about-owner-story-head {
+          grid-area: head;
+        }
+
+        .about-owner-story-bridge {
+          grid-area: bridge;
+          padding-right: 0.35rem;
+        }
+
+        .about-owner-story-bridge .about-story-body p {
+          margin-bottom: 0;
+        }
+
+        .about-owner-story-tail {
+          grid-area: tail;
         }
 
         @media (max-width: 960px) {
           .about-owner-layout {
             grid-template-columns: 320px 1fr;
-            gap: 2.5rem;
+            gap: 2rem 2.5rem;
           }
         }
 
         @media (max-width: 700px) {
           .about-owner-layout {
             grid-template-columns: 1fr;
+            grid-template-areas:
+              "portrait"
+              "head"
+              "bridge"
+              "tail";
             gap: 2rem;
           }
           .about-owner-wrap {
             padding: 0 1.25rem;
+          }
+          .about-owner-story-bridge .about-story-body p {
+            margin-bottom: 1.4rem;
           }
         }
 
