@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { getProducts } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
@@ -51,7 +51,7 @@ const STEPS = [
     icon: '🔩',
     description: 'Bearings, griptape, bolts & more',
     keywords: ['bearing', 'hardware', 'grip', 'bolt', 'griptape'],
-    tip: "Pick as many as you need — bearings, griptape, and hardware bolts all go on the same board.",
+    tip: "Choose bearings, griptape, and bolts / mounting hardware — one pick from each category we carry in stock. Add extras if you want.",
     qty: 1,
     multiSelect: true,
   },
@@ -81,6 +81,76 @@ function getStepProducts(products: any[], step: typeof STEPS[0]) {
   })
 }
 
+/** Sub-categories for the hardware step — each product goes into exactly one tab. */
+type HardwareCategory = 'bearings' | 'griptape' | 'mounting'
+
+const HARDWARE_TAB_LABELS: Record<HardwareCategory, string> = {
+  bearings: 'Bearings',
+  griptape: 'Griptape',
+  mounting: 'Bolts & hardware',
+}
+
+function categorizeHardwareProduct(p: any): HardwareCategory {
+  const text = [p.title, p.productType, ...(p.tags || [])].join(' ').toLowerCase()
+  if (text.includes('bearing')) return 'bearings'
+  if (text.includes('griptape') || text.includes('grip tape') || /\bgrip\b/.test(text)) return 'griptape'
+  return 'mounting'
+}
+
+function partitionHardwareProducts(products: any[]) {
+  const parts: Record<HardwareCategory, any[]> = { bearings: [], griptape: [], mounting: [] }
+  for (const p of products) {
+    parts[categorizeHardwareProduct(p)].push(p)
+  }
+  return parts
+}
+
+const HARDWARE_CATEGORY_ORDER: HardwareCategory[] = ['bearings', 'griptape', 'mounting']
+
+/** When products exist in Shopify for a step/category, selections must satisfy this before checkout. */
+function stepMeetsRequirements(stepDef: (typeof STEPS)[0], selections: Selections, catalog: any[]): boolean {
+  const avail = getStepProducts(catalog, stepDef)
+  if (avail.length === 0) return true
+  if (stepDef.id !== 'hardware') return (selections[stepDef.id] ?? []).length > 0
+  const parts = partitionHardwareProducts(avail)
+  const picks = selections.hardware ?? []
+  for (const cat of HARDWARE_CATEGORY_ORDER) {
+    if (parts[cat].length === 0) continue
+    if (!picks.some((p: any) => categorizeHardwareProduct(p) === cat)) return false
+  }
+  return true
+}
+
+type BoardCompletion = {
+  ok: boolean
+  missing: string[]
+}
+
+function getBoardCompletion(selections: Selections, catalog: any[]): BoardCompletion {
+  const missing: string[] = []
+
+  for (const s of STEPS) {
+    const avail = getStepProducts(catalog, s)
+    if (avail.length === 0) continue
+
+    if (s.id !== 'hardware') {
+      if ((selections[s.id] ?? []).length === 0) missing.push(`Pick a ${s.label.toLowerCase()}`)
+      continue
+    }
+
+    const parts = partitionHardwareProducts(avail)
+    const picks = selections.hardware ?? []
+    for (const cat of HARDWARE_CATEGORY_ORDER) {
+      if (parts[cat].length === 0) continue
+      if (!picks.some((p: any) => categorizeHardwareProduct(p) === cat))
+        missing.push(`Pick ${HARDWARE_TAB_LABELS[cat]}`)
+    }
+  }
+
+  const ok = STEPS.every(s => stepMeetsRequirements(s, selections, catalog))
+  return { ok, missing }
+}
+
 export default function BuildABoard() {
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
@@ -90,6 +160,8 @@ export default function BuildABoard() {
   const [added, setAdded] = useState(false)
   const [search, setSearch] = useState('')
   const [buildAndShip, setBuildAndShip] = useState(false)
+  const hardwareStepIndex = STEPS.findIndex(s => s.id === 'hardware')
+  const [hardwareTab, setHardwareTab] = useState<HardwareCategory>('bearings')
 
   // Find the free assembly service product by tag or title
   const assemblyProduct = products.find(isAssemblyProduct)
@@ -104,15 +176,47 @@ export default function BuildABoard() {
     })
   }, [])
 
-  // Clear search whenever the step changes
-  useEffect(() => { setSearch('') }, [step])
+  // Clear search when main step changes or when switching hardware tabs
+  useEffect(() => { setSearch('') }, [step, hardwareTab])
 
   const currentStep = STEPS[step]
   const isReview = step === STEPS.length
-  const stepProducts = currentStep ? getStepProducts(products, currentStep) : []
+  const stepProducts = useMemo(
+    () => (currentStep ? getStepProducts(products, currentStep) : []),
+    [products, currentStep],
+  )
+
+  const hardwarePartitions = useMemo(() => {
+    if (step !== hardwareStepIndex) return null
+    return partitionHardwareProducts(stepProducts)
+  }, [step, hardwareStepIndex, stepProducts])
+
+  useEffect(() => {
+    if (!hardwarePartitions || step !== hardwareStepIndex) return
+    if (hardwarePartitions[hardwareTab].length > 0) return
+    const fallback = HARDWARE_CATEGORY_ORDER.find(c => hardwarePartitions[c].length > 0)
+    if (fallback) setHardwareTab(fallback)
+  }, [hardwarePartitions, hardwareTab, hardwareStepIndex, step])
+
+  const productsShown = useMemo(() => {
+    if (currentStep?.id !== 'hardware' || !hardwarePartitions) return stepProducts
+    return hardwarePartitions[hardwareTab]
+  }, [currentStep?.id, stepProducts, hardwarePartitions, hardwareTab])
 
   // Re-run scroll reveal whenever step or products change
-  useScrollReveal([step, loading, isReview])
+  useScrollReveal([step, loading, isReview, hardwareTab])
+
+  const boardCompletion = useMemo(
+    () => getBoardCompletion(selections, products),
+    [selections, products],
+  )
+
+  /** Current picker step satisfies its requirement (deck/trucks/wheels, or hardware sub-types). Disables Next while loading. */
+  const currentStepRequirementsMet =
+    !!currentStep && !loading && stepMeetsRequirements(currentStep, selections, products)
+
+  const nextStepEnabled =
+    !!currentStep && !loading && (step < STEPS.length - 1 ? currentStepRequirementsMet : boardCompletion.ok)
 
   // Total items selected across all steps
   const totalSelectedItems = Object.values(selections).reduce((n, arr) => n + arr.length, 0)
@@ -140,6 +244,7 @@ export default function BuildABoard() {
   const stepSelectionCount = (stepId: string) => (selections[stepId] ?? []).length
 
   const addAllToCart = () => {
+    if (!boardCompletion.ok) return
     const existing: any[] = (() => {
       try { return JSON.parse(localStorage.getItem('hb_cart') || '[]') } catch { return [] }
     })()
@@ -197,9 +302,6 @@ export default function BuildABoard() {
       s + parseFloat(p.priceRange.minVariantPrice.amount) * (stepDef?.qty ?? 1), 0)
   }, 0)
 
-  // Can always advance — just show skip if nothing selected
-  const canAdvance = true
-
   return (
     <div style={{ minHeight: '100vh', background: BG, paddingTop: 90, paddingBottom: 80 }}>
       <style>{`
@@ -208,10 +310,9 @@ export default function BuildABoard() {
         .bab-card:hover { border-color: ${GOLD} !important; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
         .bab-card.selected { border-color: ${GOLD} !important; box-shadow: 0 0 0 1px ${GOLD}, 0 6px 24px rgba(201,169,97,0.15); }
         .step-dot { transition: background 0.2s, border-color 0.2s; cursor: pointer; }
-        .next-btn { transition: background 0.2s; }
-        .next-btn:hover { filter: brightness(1.1); }
-        .skip-link { transition: color 0.15s; }
-        .skip-link:hover { color: ${TEXT} !important; }
+        .next-btn { transition: background 0.2s, opacity 0.2s; }
+        .next-btn:hover:not(:disabled) { filter: brightness(1.1); }
+        .next-btn:disabled { cursor: default !important; opacity: 0.45; filter: none; }
         .assembly-check:hover { border-color: ${GOLD} !important; }
       `}</style>
 
@@ -223,53 +324,70 @@ export default function BuildABoard() {
           <h1 style={{ color: TEXT, fontSize: 'clamp(1.8rem, 4vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: '0 0 0.75rem' }}>
             BUILD YOUR BOARD
           </h1>
-          <p style={{ color: MUTED, fontSize: '0.9rem', maxWidth: 480, margin: '0 auto' }}>
-            Pick each component step by step. We'll add everything to your cart at once.
+          <p style={{ color: MUTED, fontSize: '0.9rem', maxWidth: 520, margin: '0 auto' }}>
+            Finish each category—deck, trucks, wheels, and one pick from each hardware type we stock (bearings, griptape, bolts)—before reviewing and adding everything to cart.
           </p>
         </div>
 
         {/* Step progress */}
         <div className="reveal reveal-delay-1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2.5rem', gap: 0 }}>
           {STEPS.map((s, i) => {
+            const fulfilled = loading ? false : stepMeetsRequirements(s, selections, products)
             const count = stepSelectionCount(s.id)
-            const done = count > 0
             const active = i === step && !isReview
             return (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                  <button className="step-dot" onClick={() => !isReview && setStep(i)} style={{
+                  <button type="button" className="step-dot" onClick={() => !isReview && setStep(i)} style={{
                     width: 44, height: 44, borderRadius: '50%',
-                    border: `2px solid ${active ? GOLD : done ? GREEN : BORDER}`,
-                    background: active ? GOLD2 : done ? 'rgba(74,222,128,0.1)' : BG2,
-                    color: active ? GOLD : done ? GREEN : MUTED,
+                    border: `2px solid ${active ? GOLD : fulfilled ? GREEN : BORDER}`,
+                    background: active ? GOLD2 : fulfilled ? 'rgba(74,222,128,0.1)' : BG2,
+                    color: active ? GOLD : fulfilled ? GREEN : MUTED,
                     fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     position: 'relative',
                   }}>
-                    {done && !active ? '✓' : s.id === 'trucks' ? (
+                    {fulfilled && !active ? '✓' : s.id === 'trucks' ? (
                       <div style={{ width: 30, height: 30, overflow: 'hidden', borderRadius: 4 }}>
                         <img src="/trucks.webp" alt="trucks" style={{ width: 52, height: 52, objectFit: 'cover', objectPosition: 'center 20%', marginLeft: -11, marginTop: -4 }} />
                       </div>
                     ) : s.icon}
-                    {done && count > 1 && (
+                    {fulfilled && count > 1 && (
                       <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, background: GOLD, borderRadius: '50%', fontSize: '0.55rem', color: BG, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{count}</span>
                     )}
                   </button>
-                  <span style={{ fontSize: '0.62rem', color: active ? GOLD : done ? GREEN : MUTED, letterSpacing: '0.08em', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.62rem', color: active ? GOLD : fulfilled ? GREEN : MUTED, letterSpacing: '0.08em', fontWeight: active ? 700 : 400, whiteSpace: 'nowrap' }}>
                     {s.label.toUpperCase()}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
-                  <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: done ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
+                  <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: fulfilled ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
                 )}
               </div>
             )
           })}
           {/* Review dot */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: isReview ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
+            <div style={{ width: 'clamp(20px, 5vw, 56px)', height: 2, background: isReview ? GREEN : boardCompletion.ok ? GREEN : BORDER, margin: '0 4px', marginBottom: 22, transition: 'background 0.3s' }} />
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-              <button className="step-dot" onClick={() => setStep(STEPS.length)} style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${isReview ? GOLD : BORDER}`, background: isReview ? GOLD2 : BG2, color: isReview ? GOLD : MUTED, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛒</button>
-              <span style={{ fontSize: '0.62rem', color: isReview ? GOLD : MUTED, letterSpacing: '0.08em', fontWeight: isReview ? 700 : 400 }}>REVIEW</span>
+              <button
+                type="button"
+                className="step-dot"
+                title={!boardCompletion.ok && !loading ? 'Complete all categories first' : undefined}
+                onClick={() => { if (boardCompletion.ok) setStep(STEPS.length) }}
+                style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  border: `2px solid ${isReview ? GOLD : boardCompletion.ok ? GREEN : BORDER}`,
+                  background: isReview ? GOLD2 : boardCompletion.ok ? 'rgba(74,222,128,0.08)' : BG2,
+                  color: isReview ? GOLD : boardCompletion.ok ? GREEN : MUTED,
+                  fontSize: '1.1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: boardCompletion.ok ? 'pointer' : 'default',
+                  opacity: boardCompletion.ok ? 1 : 0.5,
+                }}
+              >🛒</button>
+              <span style={{ fontSize: '0.62rem', color: isReview ? GOLD : boardCompletion.ok ? GREEN : MUTED, letterSpacing: '0.08em', fontWeight: isReview ? 700 : boardCompletion.ok ? 600 : 400 }}>REVIEW</span>
             </div>
           </div>
         </div>
@@ -288,7 +406,9 @@ export default function BuildABoard() {
                 </h2>
                 <p style={{ color: MUTED, fontSize: '0.82rem', margin: 0 }}>
                   {currentStep.description}
-                  {currentStep.multiSelect && <span style={{ color: GOLD, marginLeft: '0.4rem' }}>— pick as many as you need</span>}
+                  {currentStep.id === 'hardware' ? (
+                    <span style={{ color: GOLD, marginLeft: '0.4rem' }}>— one pick from each category below where we have stock.</span>
+                  ) : null}
                 </p>
               </div>
               {stepSelectionCount(currentStep.id) > 0 && (
@@ -308,9 +428,51 @@ export default function BuildABoard() {
               </p>
             </div>
 
+            {/* Hardware sub-type tabs */}
+            {currentStep.id === 'hardware' && hardwarePartitions && stepProducts.length > 0 && (
+              <div className="reveal reveal-delay-1" style={{ marginBottom: '1.25rem' }}>
+                <p style={{ color: MUTED, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', margin: '0 0 0.5rem', textTransform: 'uppercase' }}>Category</p>
+                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap', borderBottom: `1px solid ${BORDER}` }}>
+                  {HARDWARE_CATEGORY_ORDER.map(cat => {
+                    const list = hardwarePartitions[cat]
+                    if (list.length === 0) return null
+                    const active = hardwareTab === cat
+                    const picked = (selections.hardware ?? []).some((p: any) =>
+                      categorizeHardwareProduct(p) === cat,
+                    )
+                    const borderColor = picked ? GREEN : active ? GOLD : 'transparent'
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setHardwareTab(cat)}
+                        style={{
+                          padding: '0.5rem 0.95rem',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: `2px solid ${borderColor}`,
+                          color: picked ? GREEN : active ? GOLD : MUTED,
+                          cursor: 'pointer',
+                          fontWeight: active ? 700 : picked ? 600 : 500,
+                          fontSize: '0.78rem',
+                          letterSpacing: '0.04em',
+                          marginBottom: -1,
+                          fontFamily: 'inherit',
+                          transition: 'color 0.15s',
+                        }}
+                      >
+                        {picked ? `${HARDWARE_TAB_LABELS[cat]} ✓` : HARDWARE_TAB_LABELS[cat]}
+                        <span style={{ opacity: active ? 0.95 : 0.55, marginLeft: 6, fontWeight: active ? 700 : 400 }}>{list.length}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Products */}
             {/* Search bar */}
-            {!loading && stepProducts.length > 0 && (
+            {!loading && productsShown.length > 0 && (
               <div style={{ position: 'relative', marginBottom: '1rem' }}>
                 <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', opacity: 0.4, pointerEvents: 'none' }} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -319,7 +481,15 @@ export default function BuildABoard() {
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder={`Search ${currentStep.label.toLowerCase()}s...`}
+                  placeholder={
+                    currentStep.id === 'hardware'
+                      ? `Search ${HARDWARE_TAB_LABELS[hardwareTab]}...`
+                      : currentStep.id === 'deck'
+                        ? 'Search decks...'
+                        : currentStep.id === 'trucks'
+                          ? 'Search trucks...'
+                          : 'Search wheels...'
+                  }
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     background: BG2, border: `1px solid ${BORDER}`,
@@ -339,8 +509,8 @@ export default function BuildABoard() {
 
             {(() => {
               const filtered = search.trim()
-                ? stepProducts.filter(p => [p.title, p.vendor, p.productType].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase()))
-                : stepProducts
+                ? productsShown.filter(p => [p.title, p.vendor, p.productType].filter(Boolean).join(' ').toLowerCase().includes(search.toLowerCase()))
+                : productsShown
               return loading ? (
               <div style={{ textAlign: 'center', padding: '3rem', color: MUTED }}>Loading products...</div>
             ) : stepProducts.length === 0 ? (
@@ -391,29 +561,39 @@ export default function BuildABoard() {
             })()}
 
             {/* Navigation */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: `1px solid ${BORDER}` }}>
-              <button onClick={() => setStep(s => s - 1)} disabled={step === 0}
-                style={{ padding: '0.6rem 1.25rem', background: 'none', border: `1px solid ${step === 0 ? '#1a1a1a' : BORDER}`, color: step === 0 ? '#2a2a2a' : MUTED, borderRadius: 6, cursor: step === 0 ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: '0.85rem' }}>
-                ← Back
-              </button>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                {stepSelectionCount(currentStep.id) === 0 && stepProducts.length > 0 && (
-                  <button className="skip-link" onClick={() => setStep(s => s + 1)}
-                    style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.82rem', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                    Skip
-                  </button>
-                )}
-                <button className="next-btn" onClick={() => setStep(s => s + 1)}
-                  style={{
-                    padding: '0.65rem 1.75rem',
-                    background: stepSelectionCount(currentStep.id) > 0 ? GOLD : '#2a2a2a',
-                    color: stepSelectionCount(currentStep.id) > 0 ? BG : MUTED,
-                    border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
-                    fontWeight: 700, fontSize: '0.875rem', letterSpacing: '0.06em',
-                  }}>
-                  {step === STEPS.length - 1 ? 'Review Board →' : 'Next Step →'}
+            <div style={{ paddingTop: '1rem', borderTop: `1px solid ${BORDER}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setStep(s => s - 1)} disabled={step === 0}
+                  style={{ padding: '0.6rem 1.25rem', background: 'none', border: `1px solid ${step === 0 ? '#1a1a1a' : BORDER}`, color: step === 0 ? '#2a2a2a' : MUTED, borderRadius: 6, cursor: step === 0 ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: '0.85rem' }}>
+                  ← Back
                 </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem', maxWidth: 420 }}>
+                  <button
+                    type="button"
+                    className="next-btn"
+                    disabled={!nextStepEnabled}
+                    onClick={() => nextStepEnabled && setStep(s => s + 1)}
+                    style={{
+                      padding: '0.65rem 1.75rem',
+                      background: nextStepEnabled ? GOLD : '#2a2a2a',
+                      color: nextStepEnabled ? BG : MUTED,
+                      border: 'none',
+                      borderRadius: 6,
+                      fontFamily: 'inherit',
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      letterSpacing: '0.06em',
+                    }}
+                  >
+                    {step === STEPS.length - 1 ? 'Review Board →' : 'Next Step →'}
+                  </button>
+                </div>
               </div>
+              {!loading && !nextStepEnabled && boardCompletion.missing.length > 0 && (
+                <p style={{ margin: '0.75rem 0 0', color: '#e09a52', fontSize: '0.72rem', lineHeight: 1.5, textAlign: 'right' }}>
+                  {boardCompletion.missing.join(' · ')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -527,11 +707,11 @@ export default function BuildABoard() {
                     </div>
                   </label>
 
-                  <button onClick={addAllToCart} disabled={added}
+                  <button onClick={addAllToCart} disabled={added || !boardCompletion.ok}
                     style={{
-                      width: '100%', padding: '0.9rem', background: added ? '#1a3a1a' : GOLD,
-                      color: added ? GREEN : BG, border: 'none', borderRadius: 6, fontWeight: 700,
-                      fontSize: '0.95rem', letterSpacing: '0.08em', cursor: added ? 'default' : 'pointer',
+                      width: '100%', padding: '0.9rem', background: added ? '#1a3a1a' : boardCompletion.ok ? GOLD : '#2a2a2a',
+                      color: added ? GREEN : boardCompletion.ok ? BG : MUTED, border: 'none', borderRadius: 6, fontWeight: 700,
+                      fontSize: '0.95rem', letterSpacing: '0.08em', cursor: added || !boardCompletion.ok ? 'default' : 'pointer',
                       fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
                       transition: 'background 0.3s, color 0.3s', boxShadow: added ? 'none' : `0 4px 16px rgba(201,169,97,0.25)`,
                     }}>
