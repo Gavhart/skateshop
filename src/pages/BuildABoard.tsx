@@ -315,7 +315,10 @@ export default function BuildABoard() {
       return
     }
     setSelections(prev => ({ ...prev, [stepId]: [product] }))
-    setTimeout(() => setStep(s => s + 1), 420)
+    // Don't auto-advance on wheels — let the riser warning show first
+    if (stepId !== 'wheels') {
+      setTimeout(() => setStep(s => s + 1), 420)
+    }
   }
 
   const stepSelectionCount = (stepId: string) => (selections[stepId] ?? []).length
