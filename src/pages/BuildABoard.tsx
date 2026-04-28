@@ -492,13 +492,25 @@ export default function BuildABoard() {
                   ) : null}
                 </p>
               </div>
-              {stepSelectionCount(currentStep.id) > 0 && (
-                <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 8, padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ color: GREEN, fontSize: '0.75rem', fontWeight: 700 }}>
-                    ✓ {stepSelectionCount(currentStep.id)} selected
-                  </span>
-                </div>
-              )}
+              <button
+                type="button"
+                className="next-btn"
+                disabled={!nextStepEnabled}
+                onClick={() => nextStepEnabled && setStep(s => s + 1)}
+                style={{
+                  padding: '0.5rem 1.25rem',
+                  background: nextStepEnabled ? GOLD : '#2a2a2a',
+                  color: nextStepEnabled ? BG : MUTED,
+                  border: 'none', borderRadius: 6,
+                  fontFamily: 'inherit', fontWeight: 700,
+                  fontSize: '0.8rem', letterSpacing: '0.06em',
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {nextStepEnabled && <span style={{ fontSize: '0.7rem' }}>✓</span>}
+                {step === STEPS.length - 1 ? 'Review →' : 'Next →'}
+              </button>
             </div>
 
             {/* Pro tip */}
