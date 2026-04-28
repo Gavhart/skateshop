@@ -82,47 +82,95 @@ function getStepProducts(products: any[], step: typeof STEPS[0]) {
 }
 
 /** Sub-categories for the hardware step — each product goes into exactly one tab. */
-type HardwareCategory = 'bearings' | 'griptape' | 'mounting'
+type HardwareCategory = 'bearings' | 'griptape' | 'mounting' | 'risers'
 
 const HARDWARE_TAB_LABELS: Record<HardwareCategory, string> = {
   bearings: 'Bearings',
   griptape: 'Griptape',
   mounting: 'Bolts & hardware',
+  risers: 'Risers',
 }
 
 function categorizeHardwareProduct(p: any): HardwareCategory {
   const text = [p.title, p.productType, ...(p.tags || [])].join(' ').toLowerCase()
+  if (text.includes('riser')) return 'risers'
   if (text.includes('bearing')) return 'bearings'
   if (text.includes('griptape') || text.includes('grip tape') || /\bgrip\b/.test(text)) return 'griptape'
   return 'mounting'
 }
 
 function partitionHardwareProducts(products: any[]) {
-  const parts: Record<HardwareCategory, any[]> = { bearings: [], griptape: [], mounting: [] }
+  const parts: Record<HardwareCategory, any[]> = { bearings: [], griptape: [], mounting: [], risers: [] }
   for (const p of products) {
     parts[categorizeHardwareProduct(p)].push(p)
   }
   return parts
 }
 
-const HARDWARE_CATEGORY_ORDER: HardwareCategory[] = ['bearings', 'griptape', 'mounting']
+const HARDWARE_CATEGORY_ORDER: HardwareCategory[] = ['bearings', 'griptape', 'mounting', 'risers']
 
-/** True if listing text mentions a diameter in mm between 54 and 56 inclusive (common large street wheel sizes). */
-function textMentionsWheelDiameter54To56(blob: string): boolean {
-  for (const m of blob.matchAll(/\b(\d+(?:\.\d+)?)\s*mm\b/gi)) {
-    const v = parseFloat(m[1])
-    if (!Number.isNaN(v) && v >= 54 && v <= 56) return true
-  }
-  return false
+type RiserAdvice = {
+  level: 'none' | 'maybe' | 'recommended' | 'required'
+  mmRange: string
+  riserSize: string
+  note: string
+  color: string
+  icon: string
 }
 
-function selectedWheelsLook54to56mm(wheelProducts: any[]): boolean {
+function getRiserAdvice(mm: number): RiserAdvice | null {
+  if (mm >= 50 && mm <= 53) return {
+    level: 'none',
+    mmRange: '50–53mm',
+    riserSize: 'None needed',
+    note: 'Standard street setup — no riser required.',
+    color: '#4ade80',
+    icon: '✅',
+  }
+  if (mm >= 54 && mm <= 56) return {
+    level: 'maybe',
+    mmRange: '54–56mm',
+    riserSize: '1/8" riser (optional)',
+    note: 'You might get wheel bite depending on how loose your trucks are. A 1/8" riser can help but isn\'t always required.',
+    color: '#e0b868',
+    icon: '⚠️',
+  }
+  if (mm >= 57 && mm <= 59) return {
+    level: 'recommended',
+    mmRange: '57–59mm',
+    riserSize: '1/8" riser recommended',
+    note: 'Especially if you ride loose trucks or do transition skating — a 1/8" riser will prevent wheel bite.',
+    color: '#e09a52',
+    icon: '🔶',
+  }
+  if (mm >= 60) return {
+    level: 'required',
+    mmRange: '60mm+',
+    riserSize: '1/4" risers or more',
+    note: 'Common for cruisers or filmer setups — you\'ll almost certainly need at least 1/4" risers to avoid wheel bite.',
+    color: '#e05252',
+    icon: '🚨',
+  }
+  return null
+}
+
+function extractWheelMm(blob: string): number | null {
+  const matches = [...blob.matchAll(/\b(\d+(?:\.\d+)?)\s*mm\b/gi)]
+  for (const m of matches) {
+    const v = parseFloat(m[1])
+    if (!Number.isNaN(v) && v >= 48 && v <= 75) return v
+  }
+  return null
+}
+
+function getWheelRiserAdvice(wheelProducts: any[]): RiserAdvice | null {
   for (const p of wheelProducts) {
     const variantTitles = (p.variants?.edges ?? []).map((e: any) => e?.node?.title ?? '').join(' ')
-    const blob = [p.title, p.productType, variantTitles].filter(Boolean).join(' ')
-    if (textMentionsWheelDiameter54To56(blob)) return true
+    const blob = [p.title, p.productType, variantTitles, ...(p.tags ?? [])].filter(Boolean).join(' ')
+    const mm = extractWheelMm(blob)
+    if (mm !== null) return getRiserAdvice(mm)
   }
-  return false
+  return null
 }
 
 /** When products exist in Shopify for a step/category, selections must satisfy this before checkout. */
@@ -236,8 +284,8 @@ export default function BuildABoard() {
   const nextStepEnabled =
     !!currentStep && !loading && (step < STEPS.length - 1 ? currentStepRequirementsMet : boardCompletion.ok)
 
-  const showRiserNote = useMemo(
-    () => selectedWheelsLook54to56mm(selections.wheels ?? []),
+  const riserAdvice = useMemo(
+    () => getWheelRiserAdvice(selections.wheels ?? []),
     [selections.wheels],
   )
 
@@ -458,6 +506,30 @@ export default function BuildABoard() {
               </p>
             </div>
 
+            {/* Riser advice — shown on wheels step after picking */}
+            {currentStep.id === 'wheels' && riserAdvice && (
+              <div style={{
+                background: `${riserAdvice.color}12`,
+                border: `1px solid ${riserAdvice.color}44`,
+                borderRadius: 8, padding: '0.7rem 1rem', marginBottom: '1.25rem',
+                display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: '1rem', flexShrink: 0 }}>{riserAdvice.icon}</span>
+                <div>
+                  <p style={{ margin: '0 0 0.2rem', color: riserAdvice.color, fontSize: '0.78rem', fontWeight: 700 }}>
+                    {riserAdvice.mmRange} wheels — {riserAdvice.riserSize}
+                  </p>
+                  <p style={{ margin: 0, color: MUTED, fontSize: '0.74rem', lineHeight: 1.55 }}>
+                    {riserAdvice.note}
+                    {riserAdvice.level !== 'none' && (
+                      <> You can grab risers in the{' '}
+                        <Link to="/shop" style={{ color: GOLD }}>shop</Link> or add them in the hardware step.</>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Hardware sub-type tabs */}
             {currentStep.id === 'hardware' && hardwarePartitions && stepProducts.length > 0 && (
               <div className="reveal reveal-delay-1" style={{ marginBottom: '1.25rem' }}>
@@ -470,7 +542,10 @@ export default function BuildABoard() {
                     const picked = (selections.hardware ?? []).some((p: any) =>
                       categorizeHardwareProduct(p) === cat,
                     )
-                    const borderColor = picked ? GREEN : active ? GOLD : 'transparent'
+                    const isRiserTab = cat === 'risers'
+                    const needsRiser = isRiserTab && riserAdvice && riserAdvice.level !== 'none'
+                    const borderColor = picked ? GREEN : needsRiser && !picked ? riserAdvice!.color : active ? GOLD : 'transparent'
+                    const textColor = picked ? GREEN : needsRiser && !picked ? riserAdvice!.color : active ? GOLD : MUTED
                     return (
                       <button
                         key={cat}
@@ -481,22 +556,72 @@ export default function BuildABoard() {
                           background: 'none',
                           border: 'none',
                           borderBottom: `2px solid ${borderColor}`,
-                          color: picked ? GREEN : active ? GOLD : MUTED,
+                          color: textColor,
                           cursor: 'pointer',
-                          fontWeight: active ? 700 : picked ? 600 : 500,
+                          fontWeight: active ? 700 : (picked || needsRiser) ? 600 : 500,
                           fontSize: '0.78rem',
                           letterSpacing: '0.04em',
                           marginBottom: -1,
                           fontFamily: 'inherit',
                           transition: 'color 0.15s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
                         }}
                       >
                         {picked ? `${HARDWARE_TAB_LABELS[cat]} ✓` : HARDWARE_TAB_LABELS[cat]}
-                        <span style={{ opacity: active ? 0.95 : 0.55, marginLeft: 6, fontWeight: active ? 700 : 400 }}>{list.length}</span>
+                        {isRiserTab && !picked && riserAdvice && riserAdvice.level !== 'none' && (
+                          <span style={{
+                            background: `${riserAdvice.color}22`,
+                            color: riserAdvice.color,
+                            border: `1px solid ${riserAdvice.color}55`,
+                            borderRadius: 10,
+                            fontSize: '0.6rem',
+                            fontWeight: 800,
+                            padding: '0.05rem 0.4rem',
+                            letterSpacing: '0.04em',
+                          }}>
+                            {riserAdvice.level === 'required' ? 'REQUIRED' : riserAdvice.level === 'recommended' ? 'RECOMMENDED' : 'OPTIONAL'}
+                          </span>
+                        )}
+                        {!(isRiserTab && !picked && riserAdvice && riserAdvice.level !== 'none') && (
+                          <span style={{ opacity: active ? 0.95 : 0.55, fontWeight: active ? 700 : 400 }}>{list.length}</span>
+                        )}
                       </button>
                     )
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Riser size recommendation banner inside the risers tab */}
+            {currentStep.id === 'hardware' && hardwareTab === 'risers' && riserAdvice && (
+              <div style={{
+                background: `${riserAdvice.color}10`,
+                border: `1px solid ${riserAdvice.color}44`,
+                borderRadius: 8, padding: '0.65rem 1rem', marginBottom: '1rem',
+                display: 'flex', gap: '0.6rem', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: '1rem', flexShrink: 0 }}>{riserAdvice.icon}</span>
+                <p style={{ margin: 0, color: MUTED, fontSize: '0.75rem', lineHeight: 1.5 }}>
+                  Based on your <strong style={{ color: TEXT }}>{riserAdvice.mmRange}</strong> wheels:{' '}
+                  <strong style={{ color: riserAdvice.color }}>{riserAdvice.riserSize}</strong>
+                  {riserAdvice.level === 'none' && ' — but feel free to browse if you want them.'}
+                </p>
+              </div>
+            )}
+
+            {currentStep.id === 'hardware' && hardwareTab === 'risers' && !riserAdvice && (
+              <div style={{
+                background: 'rgba(201,169,97,0.06)',
+                border: '1px solid rgba(201,169,97,0.2)',
+                borderRadius: 8, padding: '0.65rem 1rem', marginBottom: '1rem',
+                display: 'flex', gap: '0.6rem', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: '1rem' }}>💡</span>
+                <p style={{ margin: 0, color: MUTED, fontSize: '0.75rem', lineHeight: 1.5 }}>
+                  Pick your wheels first and we'll recommend the right riser size for your setup.
+                </p>
               </div>
             )}
 
@@ -722,44 +847,45 @@ export default function BuildABoard() {
                   )
                 })}
 
-                {showRiserNote && (
+                {riserAdvice && (
                   <div
                     className="reveal"
                     style={{
-                      background: 'rgba(224, 154, 82, 0.08)',
-                      border: '1px solid rgba(224, 154, 82, 0.35)',
+                      background: `${riserAdvice.color}10`,
+                      border: `1px solid ${riserAdvice.color}44`,
                       borderRadius: 10,
-                      padding: '0.9rem 1rem',
-                      marginBottom: '1.25rem',
+                      padding: ‘0.9rem 1.1rem’,
+                      marginBottom: ‘1.25rem’,
                       maxWidth: 560,
-                      marginLeft: 'auto',
-                      marginRight: 'auto',
+                      marginLeft: ‘auto’,
+                      marginRight: ‘auto’,
+                      display: ‘flex’,
+                      gap: ‘0.75rem’,
+                      alignItems: ‘flex-start’,
                     }}
                   >
-                    <p style={{ margin: 0, color: MUTED, fontSize: '0.78rem', lineHeight: 1.55 }}>
-                      <strong style={{ color: '#e0b868' }}>Note:</strong>{' '}
-                      If your wheels are <strong style={{ color: TEXT }}>54–56&nbsp;mm</strong>, you’ll usually need{' '}
-                      <strong style={{ color: TEXT }}>riser pads</strong> for wheel bite clearance. Add them from the shop if you don’t have a set yet — go back to{' '}
-                      <button
-                        type="button"
-                        onClick={() => setStep(hardwareStepIndex)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: GOLD,
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                          fontSize: 'inherit',
-                          textDecoration: 'underline',
-                          textUnderlineOffset: 3,
-                          padding: 0,
-                        }}
-                      >
-                        Hardware
-                      </button>
-                      {' '}and look under <strong style={{ color: TEXT }}>Bolts &amp; hardware</strong>, or browse all hardware in the{' '}
-                      <Link to="/shop" style={{ color: GOLD }}>shop</Link>.
-                    </p>
+                    <span style={{ fontSize: ‘1.1rem’, flexShrink: 0, marginTop: 1 }}>{riserAdvice.icon}</span>
+                    <div>
+                      <p style={{ margin: ‘0 0 0.3rem’, color: riserAdvice.color, fontWeight: 700, fontSize: ‘0.82rem’ }}>
+                        {riserAdvice.mmRange} wheels — {riserAdvice.riserSize}
+                      </p>
+                      <p style={{ margin: 0, color: MUTED, fontSize: ‘0.78rem’, lineHeight: 1.55 }}>
+                        {riserAdvice.note}
+                        {riserAdvice.level !== ‘none’ && (
+                          <> Go back to{‘ ‘}
+                            <button
+                              type="button"
+                              onClick={() => setStep(hardwareStepIndex)}
+                              style={{ background: ‘none’, border: ‘none’, color: GOLD, cursor: ‘pointer’, fontFamily: ‘inherit’, fontSize: ‘inherit’, textDecoration: ‘underline’, textUnderlineOffset: 3, padding: 0 }}
+                            >
+                              Hardware
+                            </button>
+                            {‘ ‘}→ Bolts &amp; hardware to add risers, or find them in the{‘ ‘}
+                            <Link to="/shop" style={{ color: GOLD }}>shop</Link>.
+                          </>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 )}
 
