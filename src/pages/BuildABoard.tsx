@@ -249,19 +249,25 @@ export default function BuildABoard() {
 
   const toggle = (product: any) => {
     const stepId = currentStep.id
-    const current = selections[stepId] ?? []
     if (currentStep.multiSelect) {
-      // Toggle in/out of array
-      const alreadyIn = current.some((p: any) => p.id === product.id)
-      setSelections(prev => ({
-        ...prev,
-        [stepId]: alreadyIn ? current.filter((p: any) => p.id !== product.id) : [...current, product]
-      }))
-    } else {
-      // Single select — replace, then auto-advance after a brief pause
-      setSelections(prev => ({ ...prev, [stepId]: [product] }))
-      setTimeout(() => setStep(s => s + 1), 420)
+      setSelections(prev => {
+        const sel = prev[stepId] ?? []
+        const alreadyIn = sel.some((p: any) => p.id === product.id)
+        return {
+          ...prev,
+          [stepId]: alreadyIn ? sel.filter((p: any) => p.id !== product.id) : [...sel, product],
+        }
+      })
+      return
     }
+    const existing = selections[stepId]
+    const isDeselect = existing?.length === 1 && existing[0]?.id === product.id
+    if (isDeselect) {
+      setSelections(prev => ({ ...prev, [stepId]: [] }))
+      return
+    }
+    setSelections(prev => ({ ...prev, [stepId]: [product] }))
+    setTimeout(() => setStep(s => s + 1), 420)
   }
 
   const stepSelectionCount = (stepId: string) => (selections[stepId] ?? []).length
@@ -337,6 +343,7 @@ export default function BuildABoard() {
         .next-btn:hover:not(:disabled) { filter: brightness(1.1); }
         .next-btn:disabled { cursor: default !important; opacity: 0.45; filter: none; }
         .assembly-check:hover { border-color: ${GOLD} !important; }
+        .bab-review-pick:hover { border-color: #d4b87a !important; filter: brightness(1.06); }
       `}</style>
 
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '0 1.25rem' }}>
@@ -624,8 +631,17 @@ export default function BuildABoard() {
           /* Review step */
           <div>
             <h2 className="reveal" style={{ color: TEXT, fontSize: '1.3rem', fontWeight: 800, margin: '0 0 0.5rem', textAlign: 'center', letterSpacing: '-0.01em' }}>🛒 Your Complete Board</h2>
-            <p className="reveal reveal-delay-1" style={{ color: MUTED, fontSize: '0.82rem', textAlign: 'center', marginBottom: '1.75rem' }}>
-              {totalSelectedItems === 0 ? 'No items selected yet.' : `${totalSelectedItems} item${totalSelectedItems !== 1 ? 's' : ''} ready to add`}
+            <p className="reveal reveal-delay-1" style={{ color: MUTED, fontSize: '0.82rem', textAlign: 'center', marginBottom: '1.75rem', maxWidth: 420, marginLeft: 'auto', marginRight: 'auto' }}>
+              {totalSelectedItems === 0
+                ? 'No items selected yet.'
+                : (
+                  <>
+                    {totalSelectedItems} item{totalSelectedItems !== 1 ? 's' : ''} ready to add.
+                    <span style={{ display: 'block', marginTop: '0.35rem', fontSize: '0.72rem', opacity: 0.9 }}>
+                      Click any item below to remove it from your board.
+                    </span>
+                  </>
+                )}
             </p>
 
             {totalSelectedItems === 0 ? (
@@ -658,9 +674,36 @@ export default function BuildABoard() {
                             const unitPrice = parseFloat(p.priceRange.minVariantPrice.amount)
                             const linePrice = unitPrice * (s.qty ?? 1)
                             return (
-                              <div key={p.id} style={{ background: BG2, border: `1.5px solid ${GOLD}`, borderRadius: 8, overflow: 'hidden', display: 'flex', gap: '0.625rem', alignItems: 'center', padding: '0.5rem' }}>
+                              <button
+                                type="button"
+                                key={p.id}
+                                title="Remove from board"
+                                aria-label={`Remove ${p.title}`}
+                                className="bab-review-pick"
+                                onClick={() =>
+                                  setSelections(prev => ({
+                                    ...prev,
+                                    [s.id]: (prev[s.id] ?? []).filter((x: any) => x.id !== p.id),
+                                  }))
+                                }
+                                style={{
+                                  background: BG2,
+                                  border: `1.5px solid ${GOLD}`,
+                                  borderRadius: 8,
+                                  overflow: 'hidden',
+                                  display: 'flex',
+                                  gap: '0.625rem',
+                                  alignItems: 'center',
+                                  padding: '0.5rem',
+                                  cursor: 'pointer',
+                                  fontFamily: 'inherit',
+                                  textAlign: 'left',
+                                  width: '100%',
+                                  transition: 'border-color 0.2s, filter 0.2s',
+                                }}
+                              >
                                 <div style={{ width: 48, height: 48, borderRadius: 6, overflow: 'hidden', background: BG3, flexShrink: 0 }}>
-                                  {img ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>🛹</div>}
+                                  {img ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.2 }}>🛹</div>}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ margin: '0 0 0.1rem', color: TEXT, fontSize: '0.72rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</p>
@@ -669,7 +712,8 @@ export default function BuildABoard() {
                                     {s.qty && s.qty > 1 && <span style={{ color: MUTED, fontWeight: 400, fontSize: '0.62rem' }}> ×{s.qty}</span>}
                                   </p>
                                 </div>
-                              </div>
+                                <span style={{ color: MUTED, fontSize: '1rem', flexShrink: 0, opacity: 0.45, pointerEvents: 'none' }} aria-hidden>✕</span>
+                              </button>
                             )
                           })}
                         </div>
