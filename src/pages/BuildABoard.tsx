@@ -93,7 +93,7 @@ const HARDWARE_TAB_LABELS: Record<HardwareCategory, string> = {
 
 function categorizeHardwareProduct(p: any): HardwareCategory {
   const text = [p.title, p.productType, ...(p.tags || [])].join(' ').toLowerCase()
-  if (text.includes('riser')) return 'risers'
+  if (text.includes('riser') || text.includes('riser pad') || text.includes('skateboard truck riser')) return 'risers'
   if (text.includes('bearing')) return 'bearings'
   if (text.includes('griptape') || text.includes('grip tape') || /\bgrip\b/.test(text)) return 'griptape'
   return 'mounting'
@@ -553,6 +553,8 @@ export default function BuildABoard() {
                   {HARDWARE_CATEGORY_ORDER.map(cat => {
                     const list = hardwarePartitions[cat]
                     if (list.length === 0) return null
+                    // Only show Risers tab if wheel size warrants it
+                    if (cat === 'risers' && (!riserAdvice || riserAdvice.level === 'none')) return null
                     const active = hardwareTab === cat
                     const picked = (selections.hardware ?? []).some((p: any) =>
                       categorizeHardwareProduct(p) === cat,
@@ -626,19 +628,6 @@ export default function BuildABoard() {
               </div>
             )}
 
-            {currentStep.id === 'hardware' && hardwareTab === 'risers' && !riserAdvice && (
-              <div style={{
-                background: 'rgba(201,169,97,0.06)',
-                border: '1px solid rgba(201,169,97,0.2)',
-                borderRadius: 8, padding: '0.65rem 1rem', marginBottom: '1rem',
-                display: 'flex', gap: '0.6rem', alignItems: 'center',
-              }}>
-                <span style={{ fontSize: '1rem' }}>💡</span>
-                <p style={{ margin: 0, color: MUTED, fontSize: '0.75rem', lineHeight: 1.5 }}>
-                  Pick your wheels first and we'll recommend the right riser size for your setup.
-                </p>
-              </div>
-            )}
 
             {/* Products */}
             {/* Search bar */}
