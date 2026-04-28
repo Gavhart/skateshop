@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { getProducts } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
 import { useScrollReveal } from "../hooks/useScrollReveal"
@@ -106,6 +106,24 @@ function partitionHardwareProducts(products: any[]) {
 }
 
 const HARDWARE_CATEGORY_ORDER: HardwareCategory[] = ['bearings', 'griptape', 'mounting']
+
+/** True if listing text mentions a diameter in mm between 54 and 56 inclusive (common large street wheel sizes). */
+function textMentionsWheelDiameter54To56(blob: string): boolean {
+  for (const m of blob.matchAll(/\b(\d+(?:\.\d+)?)\s*mm\b/gi)) {
+    const v = parseFloat(m[1])
+    if (!Number.isNaN(v) && v >= 54 && v <= 56) return true
+  }
+  return false
+}
+
+function selectedWheelsLook54to56mm(wheelProducts: any[]): boolean {
+  for (const p of wheelProducts) {
+    const variantTitles = (p.variants?.edges ?? []).map((e: any) => e?.node?.title ?? '').join(' ')
+    const blob = [p.title, p.productType, variantTitles].filter(Boolean).join(' ')
+    if (textMentionsWheelDiameter54To56(blob)) return true
+  }
+  return false
+}
 
 /** When products exist in Shopify for a step/category, selections must satisfy this before checkout. */
 function stepMeetsRequirements(stepDef: (typeof STEPS)[0], selections: Selections, catalog: any[]): boolean {
@@ -217,6 +235,11 @@ export default function BuildABoard() {
 
   const nextStepEnabled =
     !!currentStep && !loading && (step < STEPS.length - 1 ? currentStepRequirementsMet : boardCompletion.ok)
+
+  const showRiserNote = useMemo(
+    () => selectedWheelsLook54to56mm(selections.wheels ?? []),
+    [selections.wheels],
+  )
 
   // Total items selected across all steps
   const totalSelectedItems = Object.values(selections).reduce((n, arr) => n + arr.length, 0)
@@ -654,6 +677,47 @@ export default function BuildABoard() {
                     </div>
                   )
                 })}
+
+                {showRiserNote && (
+                  <div
+                    className="reveal"
+                    style={{
+                      background: 'rgba(224, 154, 82, 0.08)',
+                      border: '1px solid rgba(224, 154, 82, 0.35)',
+                      borderRadius: 10,
+                      padding: '0.9rem 1rem',
+                      marginBottom: '1.25rem',
+                      maxWidth: 560,
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                    }}
+                  >
+                    <p style={{ margin: 0, color: MUTED, fontSize: '0.78rem', lineHeight: 1.55 }}>
+                      <strong style={{ color: '#e0b868' }}>Note:</strong>{' '}
+                      If your wheels are <strong style={{ color: TEXT }}>54–56&nbsp;mm</strong>, you’ll usually need{' '}
+                      <strong style={{ color: TEXT }}>riser pads</strong> for wheel bite clearance. Add them from the shop if you don’t have a set yet — go back to{' '}
+                      <button
+                        type="button"
+                        onClick={() => setStep(hardwareStepIndex)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: GOLD,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          fontSize: 'inherit',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: 3,
+                          padding: 0,
+                        }}
+                      >
+                        Hardware
+                      </button>
+                      {' '}and look under <strong style={{ color: TEXT }}>Bolts &amp; hardware</strong>, or browse all hardware in the{' '}
+                      <Link to="/shop" style={{ color: GOLD }}>shop</Link>.
+                    </p>
+                  </div>
+                )}
 
                 {/* Total & checkout */}
                 <div className="reveal" style={{ background: BG2, border: `1px solid ${BORDER}`, borderRadius: 10, padding: '1.25rem 1.5rem', maxWidth: 420, margin: '1.5rem auto 0' }}>
