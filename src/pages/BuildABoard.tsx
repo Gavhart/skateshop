@@ -50,7 +50,7 @@ const STEPS = [
     label: 'Hardware',
     icon: '🔩',
     description: 'Bearings, griptape, bolts & more',
-    keywords: ['bearing', 'hardware', 'grip', 'bolt', 'griptape'],
+    keywords: ['bearing', 'hardware', 'grip', 'bolt', 'griptape', 'riser'],
     tip: "Choose bearings, griptape, and bolts / mounting hardware — one pick from each category we carry in stock. Add extras if you want.",
     qty: 1,
     multiSelect: true,
