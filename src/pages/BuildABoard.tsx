@@ -854,33 +854,33 @@ export default function BuildABoard() {
                       background: `${riserAdvice.color}10`,
                       border: `1px solid ${riserAdvice.color}44`,
                       borderRadius: 10,
-                      padding: ‘0.9rem 1.1rem’,
-                      marginBottom: ‘1.25rem’,
+                      padding: '0.9rem 1.1rem',
+                      marginBottom: '1.25rem',
                       maxWidth: 560,
-                      marginLeft: ‘auto’,
-                      marginRight: ‘auto’,
-                      display: ‘flex’,
-                      gap: ‘0.75rem’,
-                      alignItems: ‘flex-start’,
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      display: 'flex',
+                      gap: '0.75rem',
+                      alignItems: 'flex-start',
                     }}
                   >
-                    <span style={{ fontSize: ‘1.1rem’, flexShrink: 0, marginTop: 1 }}>{riserAdvice.icon}</span>
+                    <span style={{ fontSize: '1.1rem', flexShrink: 0, marginTop: 1 }}>{riserAdvice.icon}</span>
                     <div>
-                      <p style={{ margin: ‘0 0 0.3rem’, color: riserAdvice.color, fontWeight: 700, fontSize: ‘0.82rem’ }}>
+                      <p style={{ margin: '0 0 0.3rem', color: riserAdvice.color, fontWeight: 700, fontSize: '0.82rem' }}>
                         {riserAdvice.mmRange} wheels — {riserAdvice.riserSize}
                       </p>
-                      <p style={{ margin: 0, color: MUTED, fontSize: ‘0.78rem’, lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, color: MUTED, fontSize: '0.78rem', lineHeight: 1.55 }}>
                         {riserAdvice.note}
-                        {riserAdvice.level !== ‘none’ && (
-                          <> Go back to{‘ ‘}
+                        {riserAdvice.level !== 'none' && (
+                          <> Go back to{' '}
                             <button
                               type="button"
                               onClick={() => setStep(hardwareStepIndex)}
-                              style={{ background: ‘none’, border: ‘none’, color: GOLD, cursor: ‘pointer’, fontFamily: ‘inherit’, fontSize: ‘inherit’, textDecoration: ‘underline’, textUnderlineOffset: 3, padding: 0 }}
+                              style={{ background: 'none', border: 'none', color: GOLD, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3, padding: 0 }}
                             >
                               Hardware
                             </button>
-                            {‘ ‘}→ Bolts &amp; hardware to add risers, or find them in the{‘ ‘}
+                            {' '}→ Bolts &amp; hardware to add risers, or find them in the{' '}
                             <Link to="/shop" style={{ color: GOLD }}>shop</Link>.
                           </>
                         )}
