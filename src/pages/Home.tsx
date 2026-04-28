@@ -253,35 +253,9 @@ const LOCAL_SPOTS = [
   },
 ]
 
-// ── Weather widget helpers ──────────────────────────────────────────────────
-const WMO_DESC: Record<number, string> = {
-  0: 'Clear skies', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-  45: 'Foggy', 48: 'Icy fog',
-  51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-  61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
-  71: 'Light snow', 73: 'Snowfall', 75: 'Heavy snow', 77: 'Snow grains',
-  80: 'Rain showers', 81: 'Rain showers', 82: 'Heavy showers',
-  85: 'Snow showers', 86: 'Heavy snow showers',
-  95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
-}
-
-function getSkateVerdict(code: number, tempF: number, windMph: number) {
-  if (code >= 95) return { verdict: 'STAY INSIDE', emoji: '⚡', color: '#e05252', reason: 'Thunderstorm. Not even a debate.' }
-  if (code >= 71 && code <= 77) return { verdict: 'SNOW DAY', emoji: '❄️', color: '#88aacc', reason: 'Fresh snow. Fun to look at, rough to skate.' }
-  if (code >= 51 && code <= 82) return { verdict: 'NOPE', emoji: '🌧️', color: '#e05252', reason: 'Wet concrete is a no-go. Hit the shop instead.' }
-  if (tempF < 28) return { verdict: 'TOO COLD', emoji: '🥶', color: '#88aacc', reason: `${Math.round(tempF)}°F is board-cracking territory.` }
-  if (windMph > 25) return { verdict: 'TOO WINDY', emoji: '💨', color: '#e09a52', reason: `${Math.round(windMph)} mph gusts. You'll be rolling backwards.` }
-  if (tempF < 40) return { verdict: 'MAYBE', emoji: '🧤', color: '#e09a52', reason: `${Math.round(tempF)}°F — layer up and see how it feels.` }
-  if (code <= 2) return { verdict: 'SKATE DAY', emoji: '🛹', color: '#4caf7d', reason: `${Math.round(tempF)}°F and clear. Get outside.` }
-  return { verdict: 'PROBABLY', emoji: '☁️', color: '#c9a961', reason: `${Math.round(tempF)}°F with some clouds. Worth it.` }
-}
-
 export default function Home() {
   const [freshProducts, setFreshProducts] = useState<any[]>([])
   const [loadingFresh, setLoadingFresh] = useState(true)
-  const [weather, setWeather] = useState<{ tempF: number; windMph: number; code: number; desc: string; city: string } | null>(null)
-  const [weatherError, setWeatherError] = useState(false)
-  const [weatherLoading, setWeatherLoading] = useState(true)
 
   const HEADLINES = [
     'SKATE OR DIE',
@@ -320,48 +294,6 @@ export default function Home() {
         setLoadingFresh(false)
       })
       .catch(() => setLoadingFresh(false))
-  }, [])
-
-  useEffect(() => {
-    async function fetchWeather(lat: number, lon: number, city: string) {
-      try {
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Anchorage'
-        const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,windspeed_10m,weathercode&temperature_unit=fahrenheit&windspeed_unit=mph&timezone=${encodeURIComponent(tz)}`
-        )
-        const data = await res.json()
-        const c = data.current
-        setWeather({ tempF: c.temperature_2m, windMph: c.windspeed_10m, code: c.weathercode, desc: WMO_DESC[c.weathercode] ?? 'Unknown', city })
-      } catch {
-        setWeatherError(true)
-      } finally {
-        setWeatherLoading(false)
-      }
-    }
-
-    async function reverseGeocode(lat: number, lon: number): Promise<string> {
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-        const data = await res.json()
-        return data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Your Location'
-      } catch {
-        return 'Your Location'
-      }
-    }
-
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const { latitude, longitude } = pos.coords
-          const city = await reverseGeocode(latitude, longitude)
-          fetchWeather(latitude, longitude, city)
-        },
-        // If denied, fall back to Soldotna
-        () => fetchWeather(60.4872, -151.0553, 'Soldotna, AK')
-      )
-    } else {
-      fetchWeather(60.4872, -151.0553, 'Soldotna, AK')
-    }
   }, [])
 
   return (
@@ -540,42 +472,6 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      {/* ── SKATE DAY WIDGET ── */}
-      {!weatherError && (
-        <section className="reveal" style={{ padding: '4rem 1.5rem', maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
-          <p className="section-eyebrow" style={{ marginBottom: '0.5rem' }}>
-            📍 {weather ? weather.city : 'Your Location'} — Right Now
-          </p>
-          <h2 className="section-title" style={{ marginBottom: '2rem' }}>IS IT A SKATE DAY?</h2>
-
-          {weatherLoading ? (
-            <div style={{ color: '#555', fontSize: '1rem', padding: '2rem' }}>Checking the weather...</div>
-          ) : !weather ? null : (() => {
-            const { verdict, emoji, color, reason } = getSkateVerdict(weather.code, weather.tempF, weather.windMph)
-            return (
-              <div style={{
-                background: '#111',
-                border: `2px solid ${color}`,
-                borderRadius: 16,
-                padding: '2.5rem 2rem',
-                boxShadow: `0 0 40px ${color}22`,
-              }}>
-                <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>{emoji}</div>
-                <div style={{ fontSize: '2.8rem', fontWeight: 900, color, letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
-                  {verdict}
-                </div>
-                <p style={{ color: '#bbb', fontSize: '1rem', marginBottom: '1.5rem' }}>{reason}</p>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', color: '#666', fontSize: '0.85rem' }}>
-                  <span>🌡️ {Math.round(weather.tempF)}°F</span>
-                  <span>💨 {Math.round(weather.windMph)} mph</span>
-                  <span>☁️ {weather.desc}</span>
-                </div>
-              </div>
-            )
-          })()}
-        </section>
-      )}
 
       <div className="sticker-divider">✦ ✦ ✦</div>
 
