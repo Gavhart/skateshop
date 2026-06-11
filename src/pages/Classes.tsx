@@ -1,14 +1,37 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { insertClassSignup } from '../lib/supabase'
+import { insertClassSignup, fetchClasses, type SkateClass } from '../lib/supabase'
 
 const FORMSPREE_ID = 'https://formspree.io/f/xaqpkrno'
+
+const CLASS_TYPE_EMOJI: Record<string, string> = {
+  beginner: '🟢', street: '🟡', group: '🔵', private: '⚪', park: '🟣',
+}
+
+function formatClassTime(date: string, time: string) {
+  try {
+    const d = new Date(`${date}T${time}`)
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) +
+      ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return `${date} · ${time}`
+  }
+}
 
 function Classes() {
   const [submitted, setSubmitted] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
   const [skill, setSkill] = useState('')
   const [loading, setLoading] = useState(false)
+  const [classes, setClasses] = useState<SkateClass[]>([])
+  const [classesLoading, setClassesLoading] = useState(true)
+
+  useEffect(() => {
+    fetchClasses(true)
+      .then(setClasses)
+      .catch(() => setClasses([]))
+      .finally(() => setClassesLoading(false))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,26 +244,58 @@ function Classes() {
       </div>
 
       {/* Class Cards */}
-      <div className="classes-grid">
-        {/* Free Beginner */}
-        <div
-          style={cardStyle(0)}
-          onMouseEnter={() => setHovered(0)}
-          onMouseLeave={() => setHovered(null)}
-        >
-          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🛹</div>
-          <h3 style={{ color: '#c9a961', fontSize: '1.5rem', marginBottom: '0.5rem' }}>BEGINNER BASICS</h3>
-          <p style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#c9a961' }}>FREE</p>
-          <ul style={{ listStyle: 'none', padding: 0, color: '#888', fontSize: '0.9rem', lineHeight: '2' }}>
-            <li>✓ Board setup &amp; safety</li>
-            <li>✓ Proper stance &amp; pushing</li>
-            <li>✓ Turning and stopping</li>
-            <li>✓ How to fall safely</li>
-          </ul>
-          <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '1.5rem' }}>📅 Soon to be determined • 👤 6 max</p>
+      {classesLoading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#555' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '0.5rem', animation: 'spin 1s linear infinite', display: 'inline-block' }}>🛹</div>
+          <p>Loading classes…</p>
         </div>
-
-      </div>
+      ) : classes.length > 0 ? (
+        <div className="classes-grid">
+          {classes.map((cls, i) => (
+            <div
+              key={cls.id}
+              style={cardStyle(i)}
+              onMouseEnter={() => setHovered(i)}
+              onMouseLeave={() => setHovered(null)}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>
+                {CLASS_TYPE_EMOJI[cls.class_type] || '🛹'}
+              </div>
+              <h3 style={{ color: '#c9a961', fontSize: '1.4rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{cls.title}</h3>
+              {cls.description && (
+                <p style={{ color: '#666', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: '1rem' }}>{cls.description}</p>
+              )}
+              <p style={{ color: '#666', fontSize: '0.82rem', marginTop: 'auto' }}>
+                📅 {formatClassTime(cls.date, cls.time)}
+              </p>
+              <p style={{ color: '#666', fontSize: '0.82rem', marginTop: '0.4rem' }}>
+                👤 {cls.spots} spot{cls.spots !== 1 ? 's' : ''} available
+                {cls.instructor ? ` · 🎤 ${cls.instructor}` : ''}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="classes-grid">
+          {/* Fallback static card when no Supabase classes exist */}
+          <div
+            style={cardStyle(0)}
+            onMouseEnter={() => setHovered(0)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🛹</div>
+            <h3 style={{ color: '#c9a961', fontSize: '1.5rem', marginBottom: '0.5rem' }}>BEGINNER BASICS</h3>
+            <p style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#c9a961' }}>FREE</p>
+            <ul style={{ listStyle: 'none', padding: 0, color: '#888', fontSize: '0.9rem', lineHeight: '2' }}>
+              <li>✓ Board setup &amp; safety</li>
+              <li>✓ Proper stance &amp; pushing</li>
+              <li>✓ Turning and stopping</li>
+              <li>✓ How to fall safely</li>
+            </ul>
+            <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '1.5rem' }}>📅 Soon to be determined • 👤 6 max</p>
+          </div>
+        </div>
+      )}
 
       {/* Waiver CTA */}
       <div style={{ maxWidth: 600, margin: '0 auto 2rem', padding: '0 2rem' }}>
@@ -308,7 +363,15 @@ function Classes() {
               <label className="form-label">Which class? *</label>
               <select name="classType" required className="form-input">
                 <option value="">Select a class...</option>
-                <option value="beginner">🟢 Beginner Basics — FREE (Flexible)</option>
+                {classes.length > 0 ? (
+                  classes.map(cls => (
+                    <option key={cls.id} value={cls.id}>
+                      {CLASS_TYPE_EMOJI[cls.class_type] || '🛹'} {cls.title} · {formatClassTime(cls.date, cls.time)} · {cls.spots} spots
+                    </option>
+                  ))
+                ) : (
+                  <option value="beginner">🟢 Beginner Basics — FREE (Flexible)</option>
+                )}
               </select>
             </div>
 

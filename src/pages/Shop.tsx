@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+ ,  { useState, useEffect, useRef } from "react"
 import { getProducts, createCheckout } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
 import { useScrollReveal } from "../hooks/useScrollReveal"
@@ -35,6 +35,8 @@ const CATEGORIES = [
       { id: 'pants', label: 'Pants & Shorts', keywords: ['pant', 'pants', 'shorts', 'jeans', 'chino', 'chinos', 'jogger', 'joggers', 'denim', 'bottoms'] },
       { id: 'hats', label: 'Hats & Beanies', keywords: ['hat', 'hats', 'cap', 'caps', 'beanie', 'beanies', 'snapback', 'fitted', 'headwear', 'dad hat', 'bucket hat'] },
       { id: 'socks', label: 'Socks', keywords: ['sock', 'socks'] },
+      { id: 'womens', label: "Women's", keywords: ['women', "women's", 'womens', 'ladies', "lady's", 'woman', 'female'] },
+      { id: 'kids', label: "Kids'", keywords: ['kid', "kid's", 'kids', 'youth', 'toddler', 'junior', 'juniors', 'child', 'children', "children's", 'boys', 'girls'] },
     ]
   },
   {

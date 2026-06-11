@@ -3,7 +3,8 @@ import {
   fetchClassSignups, confirmSignup, deleteSignup,
   fetchStokeEntries, approveWallEntry, deleteWallEntry,
   fetchWaivers, deleteWaiver,
-  type ClassSignup, type StokeEntry, type Waiver,
+  fetchClasses, createClass, updateClass, deleteClass,
+  type ClassSignup, type StokeEntry, type Waiver, type SkateClass,
 } from '../lib/supabase'
 
 const ADMIN_PASSWORD = 'dropIn@HB26'
@@ -15,7 +16,12 @@ const BG = '#0a0a0a'
 const CARD = '#111'
 const BORDER = '#1e1e1e'
 
-type Tab = 'signups' | 'wall' | 'waivers'
+type Tab = 'signups' | 'wall' | 'waivers' | 'classes'
+
+const BLANK_CLASS_FORM = {
+  title: '', class_type: 'beginner', date: '', time: '',
+  spots: 6, description: '', instructor: '', active: true,
+}
 
 const CLASS_LABELS: Record<string, string> = {
   beginner: '🟢 Beginner Basics',
@@ -63,9 +69,14 @@ export default function Admin() {
   const [signups, setSignups] = useState<ClassSignup[]>([])
   const [wall, setWall] = useState<StokeEntry[]>([])
   const [waivers, setWaivers] = useState<Waiver[]>([])
+  const [classes, setClasses] = useState<SkateClass[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null)
+  const [showClassForm, setShowClassForm] = useState(false)
+  const [editingClass, setEditingClass] = useState<SkateClass | null>(null)
+  const [classForm, setClassForm] = useState({ ...BLANK_CLASS_FORM })
+  const [classFormSaving, setClassFormSaving] = useState(false)
 
   function login(e: React.FormEvent) {
     e.preventDefault()
@@ -86,8 +97,8 @@ export default function Admin() {
   useEffect(() => {
     if (!authed) return
     setLoading(true)
-    Promise.all([fetchClassSignups(), fetchStokeEntries(false), fetchWaivers()])
-      .then(([s, w, wv]) => { setSignups(s); setWall(w); setWaivers(wv) })
+    Promise.all([fetchClassSignups(), fetchStokeEntries(false), fetchWaivers(), fetchClasses()])
+      .then(([s, w, wv, cls]) => { setSignups(s); setWall(w); setWaivers(wv); setClasses(cls) })
       .finally(() => setLoading(false))
   }, [authed])
 
@@ -119,6 +130,64 @@ export default function Admin() {
     await deleteWaiver(id)
     setWaivers(prev => prev.filter(x => x.id !== id))
     setConfirmingDelete(null)
+  }
+
+  async function toggleClassActive(cls: SkateClass) {
+    await updateClass(cls.id, { active: !cls.active })
+    setClasses(prev => prev.map(x => x.id === cls.id ? { ...x, active: !cls.active } : x))
+  }
+
+  async function handleDeleteClass(id: string) {
+    await deleteClass(id)
+    setClasses(prev => prev.filter(x => x.id !== id))
+    setConfirmingDelete(null)
+  }
+
+  async function handleSaveClass(e: React.FormEvent) {
+    e.preventDefault()
+    setClassFormSaving(true)
+    try {
+      const data = {
+        title: classForm.title.trim(),
+        class_type: classForm.class_type,
+        date: classForm.date,
+        time: classForm.time,
+        spots: Number(classForm.spots),
+        description: classForm.description.trim() || undefined,
+        instructor: classForm.instructor.trim() || undefined,
+        active: classForm.active,
+      }
+      if (editingClass) {
+        await updateClass(editingClass.id, data)
+        setClasses(prev => prev.map(x => x.id === editingClass.id ? { ...x, ...data } : x))
+      } else {
+        const created = await createClass(data)
+        setClasses(prev => [...prev, created].sort((a, b) => a.date.localeCompare(b.date)))
+      }
+      setShowClassForm(false)
+      setEditingClass(null)
+      setClassForm({ ...BLANK_CLASS_FORM })
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save class')
+    } finally {
+      setClassFormSaving(false)
+    }
+  }
+
+  function openNewClassForm() {
+    setEditingClass(null)
+    setClassForm({ ...BLANK_CLASS_FORM })
+    setShowClassForm(true)
+  }
+
+  function openEditClassForm(cls: SkateClass) {
+    setEditingClass(cls)
+    setClassForm({
+      title: cls.title, class_type: cls.class_type, date: cls.date, time: cls.time,
+      spots: cls.spots, description: cls.description || '', instructor: cls.instructor || '',
+      active: cls.active,
+    })
+    setShowClassForm(true)
   }
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -231,7 +300,8 @@ export default function Admin() {
                 const [type, id] = confirmingDelete.split(':')
                 if (type === 'signup') handleDeleteSignup(id)
                 else if (type === 'wall') handleDeleteWall(id)
-                else handleDeleteWaiver(id)
+                else if (type === 'waiver') handleDeleteWaiver(id)
+                else if (type === 'class') handleDeleteClass(id)
               }} style={{ padding: '0.6rem 1.4rem', background: RED, border: 'none', color: '#fff', borderRadius: 7, cursor: 'pointer', fontWeight: 700 }}>
                 Delete
               </button>
@@ -260,6 +330,7 @@ export default function Admin() {
           { label: 'Wall Entries', value: wall.length, icon: '🤘', accent: GOLD },
           { label: 'Pending Review', value: pendingWall, icon: '⏳', accent: '#e09a52' },
           { label: 'Signed Waivers', value: waivers.length, icon: '✍️', accent: '#7eb8f7' },
+          { label: 'Scheduled Classes', value: classes.length, icon: '📋', accent: GOLD },
         ].map(stat => (
           <div key={stat.label} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '1.1rem 1.25rem' }}>
             <div style={{ fontSize: '1.3rem', marginBottom: '0.3rem' }}>{stat.icon}</div>
@@ -283,6 +354,9 @@ export default function Admin() {
         <button className={`admin-tab${tab === 'waivers' ? ' active' : ''}`} onClick={() => setTab('waivers')}>
           WAIVERS ({waivers.length})
           {newWaivers > 0 && <span className="new-dot">{newWaivers} NEW</span>}
+        </button>
+        <button className={`admin-tab${tab === 'classes' ? ' active' : ''}`} onClick={() => setTab('classes')}>
+          CLASSES ({classes.length})
         </button>
         <input style={{ ...inputStyle, width: 'auto', flex: 1, minWidth: 140, maxWidth: 260, padding: '0.5rem 0.9rem', fontSize: '0.85rem' }}
           placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
@@ -369,7 +443,7 @@ export default function Admin() {
               </tbody>
             </table>
           )
-        ) : (
+        ) : tab === 'waivers' ? (
           filteredWaivers.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>No signed waivers yet.</div>
           ) : (
@@ -396,8 +470,129 @@ export default function Admin() {
               </tbody>
             </table>
           )
+        ) : (
+          /* ── Classes Tab ── */
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: `1px solid ${BORDER}` }}>
+              <span style={{ color: '#555', fontSize: '0.85rem' }}>{classes.length} class{classes.length !== 1 ? 'es' : ''} total</span>
+              <button onClick={openNewClassForm} style={{ padding: '0.5rem 1.2rem', background: GOLD, color: '#000', border: 'none', borderRadius: 7, fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', letterSpacing: '0.04em' }}>
+                + New Class
+              </button>
+            </div>
+            {classes.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: '#444' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📋</div>
+                <p>No classes yet.</p>
+                <p style={{ fontSize: '0.82rem', marginTop: '0.4rem' }}>Click "New Class" to schedule your first class.</p>
+              </div>
+            ) : (
+              <table className="admin-table">
+                <thead><tr>
+                  <th>TITLE</th><th>TYPE</th><th>DATE</th><th>TIME</th><th>SPOTS</th><th>INSTRUCTOR</th><th>STATUS</th>
+                  <th className="sticky-col">ACTIONS</th>
+                </tr></thead>
+                <tbody>
+                  {classes.map(cls => (
+                    <tr key={cls.id}>
+                      <td style={{ color: '#fff', fontWeight: 600 }}>{cls.title}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{cls.class_type}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{cls.date}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{cls.time}</td>
+                      <td>{cls.spots}</td>
+                      <td>{cls.instructor || '—'}</td>
+                      <td>
+                        <button className="icon-btn" style={iconBtn(cls.active ? GREEN : '#555')} onClick={() => toggleClassActive(cls)}>
+                          {cls.active ? '✅ Active' : '○ Inactive'}
+                        </button>
+                      </td>
+                      <td className="sticky-col">
+                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                          <button className="icon-btn" style={iconBtn(GOLD)} onClick={() => openEditClassForm(cls)}>✏️ Edit</button>
+                          <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.3rem 0.75rem' }} onClick={() => setConfirmingDelete(`class:${cls.id}`)}>🗑 Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         )}
       </div>
+
+      {/* ── Class Form Modal ── */}
+      {showClassForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 200 }}>
+          <div style={{ background: '#111', border: `1px solid #2a2a2a`, borderRadius: 16, padding: '2rem', maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ color: GOLD, margin: 0, fontSize: '1.1rem', letterSpacing: '0.07em' }}>
+                {editingClass ? 'EDIT CLASS' : 'NEW CLASS'}
+              </h3>
+              <button onClick={() => setShowClassForm(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '1.4rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+            <form onSubmit={handleSaveClass} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>CLASS TITLE *</label>
+                <input required value={classForm.title} onChange={e => setClassForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Beginner Basics" style={{ ...inputStyle }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>CLASS TYPE *</label>
+                <select required value={classForm.class_type} onChange={e => setClassForm(f => ({ ...f, class_type: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <option value="beginner">🟢 Beginner</option>
+                  <option value="street">🟡 Street</option>
+                  <option value="group">🔵 Group</option>
+                  <option value="private">⚪ Private</option>
+                  <option value="park">🟣 Park / Vert</option>
+                </select>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>DATE *</label>
+                  <input required type="date" value={classForm.date} onChange={e => setClassForm(f => ({ ...f, date: e.target.value }))}
+                    style={{ ...inputStyle }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>TIME *</label>
+                  <input required type="time" value={classForm.time} onChange={e => setClassForm(f => ({ ...f, time: e.target.value }))}
+                    style={{ ...inputStyle }} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>MAX SPOTS</label>
+                  <input type="number" min={1} max={50} value={classForm.spots} onChange={e => setClassForm(f => ({ ...f, spots: Number(e.target.value) }))}
+                    style={{ ...inputStyle }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>INSTRUCTOR</label>
+                  <input value={classForm.instructor} onChange={e => setClassForm(f => ({ ...f, instructor: e.target.value }))}
+                    placeholder="Name" style={{ ...inputStyle }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', color: '#555', fontSize: '0.72rem', letterSpacing: '0.07em', marginBottom: '0.4rem' }}>DESCRIPTION</label>
+                <textarea value={classForm.description} onChange={e => setClassForm(f => ({ ...f, description: e.target.value }))}
+                  rows={3} placeholder="What will students learn?" style={{ ...inputStyle, resize: 'vertical' }} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem', background: '#0a0a0a', borderRadius: 8, border: `1px solid #1e1e1e` }}>
+                <input type="checkbox" checked={classForm.active} onChange={e => setClassForm(f => ({ ...f, active: e.target.checked }))}
+                  style={{ width: 18, height: 18, accentColor: GOLD, cursor: 'pointer' }} />
+                <span style={{ color: '#aaa', fontSize: '0.9rem' }}>Active — visible to students on the Classes page</span>
+              </label>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowClassForm(false)} style={{ flex: 1, padding: '0.8rem', background: 'none', border: `1px solid #2a2a2a`, color: '#666', borderRadius: 8, cursor: 'pointer' }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={classFormSaving} style={{ flex: 2, padding: '0.8rem', background: GOLD, color: '#000', border: 'none', borderRadius: 8, fontWeight: 800, fontSize: '0.95rem', cursor: classFormSaving ? 'not-allowed' : 'pointer', opacity: classFormSaving ? 0.7 : 1, letterSpacing: '0.05em' }}>
+                  {classFormSaving ? 'Saving…' : editingClass ? 'Save Changes' : 'Create Class'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Mobile cards ── */}
       {!loading && (
@@ -458,7 +653,7 @@ export default function Admin() {
                 </div>
               </div>
             ))
-          ) : (
+          ) : tab === 'waivers' ? (
             filteredWaivers.length === 0 ? (
               <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No signed waivers yet.</p>
             ) : filteredWaivers.map(wv => (
@@ -479,6 +674,35 @@ export default function Admin() {
                 </div>
               </div>
             ))
+          ) : (
+            <div style={{ padding: '1rem' }}>
+              <button onClick={openNewClassForm} style={{ width: '100%', padding: '0.75rem', background: GOLD, color: '#000', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', marginBottom: '1rem' }}>
+                + New Class
+              </button>
+              {classes.length === 0 ? (
+                <p style={{ color: '#444', textAlign: 'center', padding: '2rem 0' }}>No classes yet.</p>
+              ) : classes.map(cls => (
+                <div key={cls.id} className="mobile-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>{cls.title}</span>
+                    <span style={{ color: cls.active ? GREEN : '#555', fontSize: '0.75rem', fontWeight: 700 }}>{cls.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <div><div className="mobile-card-label">DATE</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{cls.date}</div></div>
+                    <div><div className="mobile-card-label">TIME</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{cls.time}</div></div>
+                    <div><div className="mobile-card-label">SPOTS</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{cls.spots}</div></div>
+                    <div><div className="mobile-card-label">INSTRUCTOR</div><div style={{ color: '#aaa', fontSize: '0.88rem' }}>{cls.instructor || '—'}</div></div>
+                  </div>
+                  <div className="mobile-card-actions">
+                    <button className="icon-btn" style={{ ...iconBtn(GOLD), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => openEditClassForm(cls)}>✏️ Edit</button>
+                    <button className="icon-btn" style={{ ...iconBtn(cls.active ? GREEN : '#555'), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => toggleClassActive(cls)}>
+                      {cls.active ? '✅ Active' : '○ Inactive'}
+                    </button>
+                    <button className="icon-btn" style={{ ...iconBtn(RED), padding: '0.5rem 0.9rem', fontSize: '0.85rem' }} onClick={() => setConfirmingDelete(`class:${cls.id}`)}>🗑 Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -21,6 +21,8 @@ export const MEGA_MENU = [
       { id: 'pants', label: 'Pants', keywords: ['pant', 'pants', 'jean', 'jeans', 'shorts', 'chino'] },
       { id: 'hats', label: 'Hats', keywords: ['hat', 'hats', 'cap', 'beanie', 'snapback', 'strapback'] },
       { id: 'socks', label: 'Socks', keywords: ['sock', 'socks', 'crew sock'] },
+      { id: 'womens', label: "Women's", keywords: ['women', "women's", 'womens', 'ladies', 'lady', 'woman', 'female'] },
+      { id: 'kids', label: "Kids'", keywords: ['kid', "kid's", 'kids', 'youth', 'toddler', 'junior', 'juniors', 'child', 'children', 'boys', 'girls'] },
       { id: 'jackets', label: 'Jackets', keywords: ['jacket', 'windbreaker', 'coat', 'outerwear'] },
       { id: 'onesies', label: 'Baby', keywords: ['onesie', 'baby', 'infant', 'youth'] },
     ]

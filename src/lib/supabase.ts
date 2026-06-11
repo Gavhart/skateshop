@@ -114,6 +114,62 @@ export async function deleteWaiver(id: string): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete waiver')
 }
 
+// ── Skate Classes ──────────────────────────────────────────────────────────
+
+export interface SkateClass {
+  id: string
+  title: string
+  class_type: string
+  date: string
+  time: string
+  spots: number
+  description?: string
+  instructor?: string
+  active: boolean
+  created_at: string
+}
+
+export async function fetchClasses(activeOnly = false): Promise<SkateClass[]> {
+  const filter = activeOnly ? '&active=eq.true' : ''
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/classes?select=*&order=date.asc${filter}`,
+    { headers: HEADERS }
+  )
+  if (!res.ok) throw new Error('Failed to fetch classes')
+  return res.json()
+}
+
+export async function createClass(data: Omit<SkateClass, 'id' | 'created_at'>): Promise<SkateClass> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/classes`, {
+    method: 'POST',
+    headers: { ...HEADERS, 'Prefer': 'return=representation' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const errText = await res.text()
+    throw new Error(`Failed to create class (${res.status}): ${errText}`)
+  }
+  const rows = await res.json()
+  return rows[0]
+}
+
+export async function updateClass(id: string, data: Partial<Omit<SkateClass, 'id' | 'created_at'>>): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/classes?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: { ...HEADERS, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error('Failed to update class')
+}
+
+export async function deleteClass(id: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/classes?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: HEADERS,
+  })
+  if (!res.ok) throw new Error('Failed to delete class')
+}
+
 // ── Wall of Stoke ──────────────────────────────────────────────────────────
 
 export async function fetchStokeEntries(approvedOnly = false): Promise<StokeEntry[]> {
