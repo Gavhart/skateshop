@@ -1,4 +1,4 @@
- ,  { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { getProducts, createCheckout } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
 import { useScrollReveal } from "../hooks/useScrollReveal"
