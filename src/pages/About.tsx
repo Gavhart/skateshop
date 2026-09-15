@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import {
+  HOURS,
+  SHOP_ADDRESS,
+  SHOP_EMAIL,
+  SHOP_INSTAGRAM_HANDLE,
+  SHOP_INSTAGRAM_URL,
+  SHOP_MAPS_URL,
+} from '../lib/shopInfo'
 
 const GALLERY = [
   { src: '/shop-front.jpeg', label: 'Peninsula Center Mall' },
@@ -607,12 +615,12 @@ function About() {
             </div>
 
             <a
-              href="https://instagram.com/hartboysskateshop"
+              href={SHOP_INSTAGRAM_URL}
               target="_blank"
               rel="noreferrer"
               className="about-ig-link"
             >
-              📸 Follow @hartboysskateshop
+              📸 Follow {SHOP_INSTAGRAM_HANDLE}
             </a>
           </div>
 
@@ -674,13 +682,13 @@ function About() {
               <h3>FIND US</h3>
             </div>
             <div className="about-card-body">
-              <p>Peninsula Center Mall</p>
-              <p>Suite 48C</p>
-              <p>44332 Sterling Highway</p>
-              <p>Soldotna, AK 99669</p>
+              <p>{SHOP_ADDRESS.mall}</p>
+              <p>{SHOP_ADDRESS.suite}</p>
+              <p>{SHOP_ADDRESS.street}</p>
+              <p>{SHOP_ADDRESS.city}</p>
               <a
                 className="maps-link"
-                href="https://maps.google.com/?q=44332+Sterling+Highway+Soldotna+AK+99669"
+                href={SHOP_MAPS_URL}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -698,13 +706,13 @@ function About() {
             <div className="about-card-body">
               <div className="about-hours-block">
                 <span className="about-season winter">Winter</span>
-                <p>Mon – Sat: 11:00 AM – 6:00 PM</p>
-                <p>Sunday: Closed</p>
+                <p>{HOURS.winter}</p>
+                <p>{HOURS.sunday}</p>
               </div>
               <div className="about-hours-block">
                 <span className="about-season summer">Summer</span>
-                <p>Mon – Sat: 10:00 AM – 7:00 PM</p>
-                <p>Sunday: Closed</p>
+                <p>{HOURS.summer}</p>
+                <p>{HOURS.sunday}</p>
               </div>
             </div>
           </div>
@@ -717,12 +725,12 @@ function About() {
             </div>
             <div className="about-card-body">
               <p>
-                <a href="tel:+19075550123" className="contact-link">📞 (907) 555-0123</a>
+                <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer" className="contact-link">
+                  📸 {SHOP_INSTAGRAM_HANDLE}
+                </a>
               </p>
               <p>
-                <a href="https://instagram.com/hartboysskateshop" target="_blank" rel="noreferrer" className="contact-link">
-                  📸 @hartboysskateshop
-                </a>
+                <a href={`mailto:${SHOP_EMAIL}`} className="contact-link">{SHOP_EMAIL}</a>
               </p>
               <p>Or just come hang 🤙</p>
             </div>

@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  HOURS,
+  SHOP_ADDRESS,
+  SHOP_FACEBOOK_URL,
+  SHOP_INSTAGRAM_URL,
+} from '../lib/shopInfo'
 
 const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a']
 const PARTICLES = ['🛹','🔥','⚡','✦','🤘','💀','⭐','🛹','🔥','⚡','✦','🤘']
@@ -326,8 +332,11 @@ function Layout() {
             ))}
           </nav>
           <div className="mobile-menu-footer">
-            <a href="https://instagram.com/hartboysskateshop" target="_blank" rel="noreferrer">INSTAGRAM</a>
-            <a href="https://facebook.com/hartboysskateshop" target="_blank" rel="noreferrer">FACEBOOK</a>
+            <Link to="/contact">CONTACT</Link>
+            <Link to="/shipping">SHIPPING</Link>
+            <Link to="/returns">RETURNS</Link>
+            <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer">INSTAGRAM</a>
+            <a href={SHOP_FACEBOOK_URL} target="_blank" rel="noreferrer">FACEBOOK</a>
           </div>
         </div>
       </div>
@@ -340,14 +349,22 @@ function Layout() {
         <div className="footer-content">
           <div className="footer-brand">
             <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
-            <p>Peninsula Center Mall<br />Suite 48C • Soldotna, AK<br />Mon–Sat: 10AM–7PM</p>
+            <p>
+              {SHOP_ADDRESS.mall}<br />
+              {SHOP_ADDRESS.suite} • {SHOP_ADDRESS.cityShort}<br />
+              {HOURS.footerBrief}<br />
+              {HOURS.sunday}
+            </p>
           </div>
           <div className="footer-links">
-            <a href="https://instagram.com/hartboysskateshop">INSTAGRAM</a>
-            <a href="https://facebook.com/hartboysskateshop">FACEBOOK</a>
+            <Link to="/contact">CONTACT</Link>
+            <Link to="/shipping">SHIPPING</Link>
+            <Link to="/returns">RETURNS</Link>
+            <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer">INSTAGRAM</a>
+            <a href={SHOP_FACEBOOK_URL} target="_blank" rel="noreferrer">FACEBOOK</a>
           </div>
         </div>
-        <p className="copyright">© 2025 HART BOYS SKATE SHOP • MON–SAT 10AM–7PM</p>
+        <p className="copyright">© 2026 HART BOYS SKATE SHOP</p>
       </footer>
     </div>
   )

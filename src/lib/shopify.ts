@@ -123,10 +123,27 @@ export async function getProducts(): Promise<Product[]> {
   return allProducts
 }
 
-export async function createCheckout(lineItems: LineItem[], note?: string) {
-  if (!lineItems?.length) throw new Error('Cart empty')
+type CartCreateInput = {
+  lines: Array<{ merchandiseId: string; quantity: number }>
+  note?: string
+  attributes: Array<{ key: string; value: string }>
+  buyerIdentity?: {
+    countryCode: string
+    deliveryAddressPreferences: Array<{
+      deliveryAddress: { country: string; province: string }
+    }>
+  }
+}
 
-  // Shopify Storefront API 2024+ uses cartCreate instead of checkoutCreate
+function cartCreateFailed(data: any): boolean {
+  return Boolean(
+    data?.errors?.length ||
+    data?.data?.cartCreate?.userErrors?.length ||
+    !data?.data?.cartCreate?.cart?.checkoutUrl
+  )
+}
+
+async function cartCreate(input: CartCreateInput) {
   const query = `
     mutation cartCreate($input: CartInput!) {
       cartCreate(input: $input) {
@@ -148,25 +165,43 @@ export async function createCheckout(lineItems: LineItem[], note?: string) {
       'Content-Type': 'application/json',
       'X-Shopify-Storefront-Access-Token': STOREFRONT_TOKEN
     },
-    body: JSON.stringify({
-      query,
-      variables: {
-        input: {
-          lines: lineItems.map((i: LineItem) => ({
-            merchandiseId: i.variantId,
-            quantity: i.quantity
-          })),
-          note: note || undefined,
-          attributes: [
-            { key: 'return_url', value: window.location.origin },
-            { key: '_return_url', value: window.location.origin }
-          ]
-        }
-      }
-    })
+    body: JSON.stringify({ query, variables: { input } })
   })
 
-  const data = await response.json()
+  return response.json()
+}
+
+export async function createCheckout(lineItems: LineItem[], note?: string) {
+  if (!lineItems?.length) throw new Error('Cart empty')
+
+  const baseInput: CartCreateInput = {
+    lines: lineItems.map((i: LineItem) => ({
+      merchandiseId: i.variantId,
+      quantity: i.quantity
+    })),
+    note: note || undefined,
+    attributes: [
+      { key: 'return_url', value: window.location.origin },
+      { key: '_return_url', value: window.location.origin }
+    ]
+  }
+
+  // Prefer Alaska at checkout without inventing a street address.
+  // If Storefront rejects a province-only preference, fall back to a plain cart.
+  const alaskaInput: CartCreateInput = {
+    ...baseInput,
+    buyerIdentity: {
+      countryCode: 'US',
+      deliveryAddressPreferences: [
+        { deliveryAddress: { country: 'US', province: 'AK' } }
+      ]
+    }
+  }
+
+  let data = await cartCreate(alaskaInput)
+  if (cartCreateFailed(data)) {
+    data = await cartCreate(baseInput)
+  }
 
   if (data.errors?.length) {
     throw new Error(data.errors[0].message || 'Checkout request failed')
@@ -180,7 +215,6 @@ export async function createCheckout(lineItems: LineItem[], note?: string) {
   const cart = data.data?.cartCreate?.cart
   if (!cart?.checkoutUrl) throw new Error('No checkout URL returned from Shopify')
 
-  // Append return_url so Shopify redirects back to our site after order
   const returnUrl = `${window.location.origin}/order-success`
   const checkoutUrl = `${cart.checkoutUrl}?return_url=${encodeURIComponent(returnUrl)}`
 

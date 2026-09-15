@@ -350,7 +350,7 @@ function Classes() {
             <div className="form-row-2">
               <div>
                 <label className="form-label">Phone</label>
-                <input name="phone" type="tel" placeholder="(907) 555-0123" className="form-input" />
+                <input name="phone" type="tel" placeholder="Optional" className="form-input" />
               </div>
               <div>
                 <label className="form-label">Age</label>

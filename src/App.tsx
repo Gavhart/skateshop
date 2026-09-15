@@ -11,6 +11,9 @@ import BuildABoard from './pages/BuildABoard'
 import WallOfStoke from './pages/WallOfStoke'
 import WaiverSign from './pages/WaiverSign'
 import Admin from './pages/Admin'
+import Contact from './pages/Contact'
+import Shipping from './pages/Shipping'
+import Returns from './pages/Returns'
 import './App.css'
 
 function App() {
@@ -19,6 +22,9 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
+        <Route path="shipping" element={<Shipping />} />
+        <Route path="returns" element={<Returns />} />
         <Route path="shop" element={<Shop />} />
         <Route path="updates" element={<Updates />} />
         <Route path="waiver" element={<Waiver />} />
