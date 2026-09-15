@@ -5,6 +5,7 @@ import {
   SHOP_ADDRESS,
   SHOP_INSTAGRAM_HANDLE,
   SHOP_INSTAGRAM_URL,
+  shopInfo,
 } from '../lib/shopInfo'
 
 function Returns() {
@@ -12,6 +13,8 @@ function Returns() {
     <PolicyPage
       title="RETURNS"
       subtitle="Unused gear. Fair window. No games."
+      description={`${shopInfo.returnWindowDays}-day returns for ${shopInfo.name} in ${shopInfo.city}, ${shopInfo.state}.`}
+      path="/returns"
       lead="We're a small skate shop, not a giant return mill. If something didn't work out and it's still fresh, we'll take care of you."
     >
       <section className="policy-section">

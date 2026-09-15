@@ -1,13 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import {
-  HOURS,
-  SHOP_ADDRESS,
-  SHOP_EMAIL,
-  SHOP_INSTAGRAM_HANDLE,
-  SHOP_INSTAGRAM_URL,
-  SHOP_MAPS_URL,
-} from '../lib/shopInfo'
+import { shopInfo, shopMapsUrl } from '../lib/shopInfo'
 
 const GALLERY = [
   { src: '/shop-front.jpeg', label: 'Peninsula Center Mall' },
@@ -615,12 +608,12 @@ function About() {
             </div>
 
             <a
-              href={SHOP_INSTAGRAM_URL}
+              href={shopInfo.instagramUrl}
               target="_blank"
               rel="noreferrer"
               className="about-ig-link"
             >
-              📸 Follow {SHOP_INSTAGRAM_HANDLE}
+              📸 Follow {shopInfo.instagramHandle}
             </a>
           </div>
 
@@ -682,13 +675,13 @@ function About() {
               <h3>FIND US</h3>
             </div>
             <div className="about-card-body">
-              <p>{SHOP_ADDRESS.mall}</p>
-              <p>{SHOP_ADDRESS.suite}</p>
-              <p>{SHOP_ADDRESS.street}</p>
-              <p>{SHOP_ADDRESS.city}</p>
+              <p>{shopInfo.mall}</p>
+              <p>{shopInfo.suite}</p>
+              <p>{shopInfo.street}</p>
+              <p>{shopInfo.city}, {shopInfo.state} {shopInfo.zip}</p>
               <a
                 className="maps-link"
-                href={SHOP_MAPS_URL}
+                href={shopMapsUrl}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -705,14 +698,14 @@ function About() {
             </div>
             <div className="about-card-body">
               <div className="about-hours-block">
-                <span className="about-season winter">Winter</span>
-                <p>{HOURS.winter}</p>
-                <p>{HOURS.sunday}</p>
+                <span className="about-season winter">{shopInfo.hours.winter.label}</span>
+                <p>{shopInfo.hours.winter.days}: {shopInfo.hours.winter.time}</p>
+                <p>Sunday: {shopInfo.hours.winter.sunday}</p>
               </div>
               <div className="about-hours-block">
-                <span className="about-season summer">Summer</span>
-                <p>{HOURS.summer}</p>
-                <p>{HOURS.sunday}</p>
+                <span className="about-season summer">{shopInfo.hours.summer.label}</span>
+                <p>{shopInfo.hours.summer.days}: {shopInfo.hours.summer.time}</p>
+                <p>Sunday: {shopInfo.hours.summer.sunday}</p>
               </div>
             </div>
           </div>
@@ -725,12 +718,12 @@ function About() {
             </div>
             <div className="about-card-body">
               <p>
-                <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer" className="contact-link">
-                  📸 {SHOP_INSTAGRAM_HANDLE}
-                </a>
+                <a href={`mailto:${shopInfo.email}`} className="contact-link">✉️ {shopInfo.email}</a>
               </p>
               <p>
-                <a href={`mailto:${SHOP_EMAIL}`} className="contact-link">{SHOP_EMAIL}</a>
+                <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer" className="contact-link">
+                  📸 {shopInfo.instagramHandle}
+                </a>
               </p>
               <p>Or just come hang 🤙</p>
             </div>

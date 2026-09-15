@@ -7,6 +7,7 @@ import {
   SHOP_INSTAGRAM_HANDLE,
   SHOP_INSTAGRAM_URL,
   SHOP_MAPS_URL,
+  shopInfo,
 } from '../lib/shopInfo'
 
 function Contact() {
@@ -14,6 +15,8 @@ function Contact() {
     <PolicyPage
       title="CONTACT"
       subtitle="Come hang — or slide into the DMs."
+      description={`Contact ${shopInfo.name} in ${shopInfo.city}, ${shopInfo.state} — hours, address, Instagram, and email.`}
+      path="/contact"
       lead="We're a small shop in Soldotna. The fastest way to reach us is Instagram or stopping by Peninsula Center Mall. No bots, no call center — just the crew at the counter."
       wide
     >

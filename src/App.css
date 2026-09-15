@@ -93,6 +93,73 @@ body {
   color: var(--accent);
 }
 
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.nav-search {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.nav-search input {
+  width: 180px;
+  padding: 0.45rem 2.6rem 0.45rem 2rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+}
+
+.nav-search input:focus {
+  border-color: var(--accent);
+}
+
+.nav-search-submit {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0.2rem 0.35rem;
+}
+
+.nav-search-mobile {
+  margin: 0 0 1.5rem;
+}
+
+.nav-search-mobile input {
+  width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .nav-links {
+    gap: 1.15rem;
+  }
+  .nav-search-desktop input {
+    width: 148px;
+  }
+}
+
 /* HERO */
 /* ── HERO ANIMATED BANNER ────────────────────────── */
 @keyframes heroGlow {
@@ -2969,6 +3036,14 @@ button:disabled {
 
   /* Hide desktop nav links */
   .nav-links {
+    display: none !important;
+  }
+
+  .nav-search-desktop {
+    display: none !important;
+  }
+
+  .nav-right {
     display: none !important;
   }
 

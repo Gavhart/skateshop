@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { getProducts } from '../lib/shopify'
 import { useScrollReveal } from '../hooks/useScrollReveal'
 import { isExcluded } from '../lib/filters'
-import { HOURS } from '../lib/shopInfo'
+import { pickFreshInStock } from '../lib/stock'
+import { shopInfo } from '../lib/shopInfo'
 
 const BRANDS = [
   'POWELL PERALTA', 'SANTA CRUZ', 'CREATURE', 'INDEPENDENT',
@@ -291,7 +292,7 @@ export default function Home() {
   useEffect(() => {
     getProducts()
       .then(products => {
-        setFreshProducts(products.filter(p => !isExcluded(p)).slice(0, 3))
+        setFreshProducts(pickFreshInStock(products.filter(p => !isExcluded(p)), 3))
         setLoadingFresh(false)
       })
       .catch(() => setLoadingFresh(false))
@@ -330,7 +331,7 @@ export default function Home() {
         <div className="tagline now-open reveal reveal-delay-1">
           <span>📍 SOLDOTNA, ALASKA</span>
           <span className="slash">/</span>
-          <span className="open-badge">{HOURS.heroBadge}</span>
+          <span className="open-badge">{shopInfo.hours.heroBadge}</span>
         </div>
 
         <p className="store-location reveal reveal-delay-2">Peninsula Center Mall • Suite 48C</p>
@@ -357,7 +358,7 @@ export default function Home() {
         <div className="feature-card reveal reveal-delay-1">
           <span className="feature-icon">🛹</span>
           <h3>VISIT US</h3>
-          <p>Peninsula Center Mall<br />Suite 48C, Soldotna<br />Mon–Sat 11am–6pm</p>
+          <p>{shopInfo.mall}<br />{shopInfo.suite}, {shopInfo.city}<br />{shopInfo.hours.winter.label}: {shopInfo.hours.winter.time}<br />{shopInfo.hours.summer.label}: {shopInfo.hours.summer.time}</p>
         </div>
         <div className="feature-card reveal reveal-delay-2">
           <span className="feature-icon">⚡</span>
@@ -403,7 +404,7 @@ export default function Home() {
                 return (
                   <Link
                     key={p.id}
-                    to="/shop"
+                    to={`/shop/${p.handle}`}
                     className={`fresh-card reveal reveal-delay-${i + 1}`}
                   >
                     <div className="fresh-card-img-wrap">

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  HOURS,
-  SHOP_ADDRESS,
-  SHOP_FACEBOOK_URL,
-  SHOP_INSTAGRAM_URL,
-} from '../lib/shopInfo'
+import { CartProvider } from '../context/CartContext'
+import CartDrawer from './CartDrawer'
+import NavSearch from './NavSearch'
+import RouteSeo from './RouteSeo'
+import { shopInfo } from '../lib/shopInfo'
 
 const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a']
 const PARTICLES = ['🛹','🔥','⚡','✦','🤘','💀','⭐','🛹','🔥','⚡','✦','🤘']
@@ -289,12 +288,24 @@ function Layout() {
         </Link>
 
         {/* Desktop nav */}
+        <div className="nav-right">
         <div className="nav-links">
           {navLinks.map(({ to, label }) => (
-            <Link key={to} to={to} className={location.pathname === to ? 'active' : ''}>
+            <Link
+              key={to}
+              to={to}
+              className={
+                to === '/shop'
+                  ? (location.pathname === '/shop' || location.pathname.startsWith('/shop/') ? 'active' : '')
+                  : location.pathname === to ? 'active' : ''
+              }
+            >
               {label}
             </Link>
           ))}
+        </div>
+
+        <NavSearch id="nav-search-desktop" className="nav-search-desktop" />
         </div>
 
         {/* Hamburger button — mobile only */}
@@ -319,12 +330,17 @@ function Layout() {
       <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>
         <div className="mobile-menu-inner">
           <img src="/logo.jpeg" alt="Hart Boys" className="mobile-menu-logo" />
+          <NavSearch id="nav-search-mobile" className="nav-search-mobile" onSubmitExtra={() => setMenuOpen(false)} />
           <nav className="mobile-nav-links">
             {navLinks.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`mobile-nav-link ${location.pathname === to ? 'active' : ''}`}
+                className={`mobile-nav-link ${
+                  to === '/shop'
+                    ? (location.pathname === '/shop' || location.pathname.startsWith('/shop/') ? 'active' : '')
+                    : location.pathname === to ? 'active' : ''
+                }`}
                 onClick={() => setMenuOpen(false)}
               >
                 {label}
@@ -332,40 +348,48 @@ function Layout() {
             ))}
           </nav>
           <div className="mobile-menu-footer">
-            <Link to="/contact">CONTACT</Link>
-            <Link to="/shipping">SHIPPING</Link>
-            <Link to="/returns">RETURNS</Link>
-            <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer">INSTAGRAM</a>
-            <a href={SHOP_FACEBOOK_URL} target="_blank" rel="noreferrer">FACEBOOK</a>
+            <Link to="/contact" onClick={() => setMenuOpen(false)}>CONTACT</Link>
+            <Link to="/shipping" onClick={() => setMenuOpen(false)}>SHIPPING</Link>
+            <Link to="/returns" onClick={() => setMenuOpen(false)}>RETURNS</Link>
+            <Link to="/privacy" onClick={() => setMenuOpen(false)}>PRIVACY</Link>
+            <Link to="/terms" onClick={() => setMenuOpen(false)}>TERMS</Link>
+            <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer">INSTAGRAM</a>
+            <a href={shopInfo.facebookUrl} target="_blank" rel="noreferrer">FACEBOOK</a>
           </div>
         </div>
       </div>
 
-      <main>
-        <Outlet />
-      </main>
+      <CartProvider>
+        <RouteSeo />
+        <CartDrawer />
+        <main>
+          <Outlet />
+        </main>
 
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
-            <p>
-              {SHOP_ADDRESS.mall}<br />
-              {SHOP_ADDRESS.suite} • {SHOP_ADDRESS.cityShort}<br />
-              {HOURS.footerBrief}<br />
-              {HOURS.sunday}
-            </p>
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-brand">
+              <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
+              <p>
+                {shopInfo.mall}<br />
+                {shopInfo.suite} • {shopInfo.city}, {shopInfo.state}<br />
+                {shopInfo.hours.footerBrief}<br />
+                {shopInfo.hours.sunday}
+              </p>
+            </div>
+            <div className="footer-links">
+              <Link to="/contact">CONTACT</Link>
+              <Link to="/shipping">SHIPPING</Link>
+              <Link to="/returns">RETURNS</Link>
+              <Link to="/privacy">PRIVACY</Link>
+              <Link to="/terms">TERMS</Link>
+              <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer">INSTAGRAM</a>
+              <a href={shopInfo.facebookUrl} target="_blank" rel="noreferrer">FACEBOOK</a>
+            </div>
           </div>
-          <div className="footer-links">
-            <Link to="/contact">CONTACT</Link>
-            <Link to="/shipping">SHIPPING</Link>
-            <Link to="/returns">RETURNS</Link>
-            <a href={SHOP_INSTAGRAM_URL} target="_blank" rel="noreferrer">INSTAGRAM</a>
-            <a href={SHOP_FACEBOOK_URL} target="_blank" rel="noreferrer">FACEBOOK</a>
-          </div>
-        </div>
-        <p className="copyright">© 2026 HART BOYS SKATE SHOP</p>
-      </footer>
+          <p className="copyright">© {new Date().getFullYear()} {shopInfo.name.toUpperCase()} • {shopInfo.city.toUpperCase()}, {shopInfo.state}</p>
+        </footer>
+      </CartProvider>
     </div>
   )
 }

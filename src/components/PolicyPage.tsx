@@ -1,10 +1,14 @@
 import type { ReactNode } from 'react'
+import Seo from './Seo'
+import { shopInfo } from '../lib/shopInfo'
 
 const POLICY_STYLES = `
   .policy-page .policy-wrap {
     max-width: 760px;
     margin: 0 auto;
     padding: 0 2rem 5rem;
+    color: var(--text);
+    line-height: 1.75;
   }
 
   .policy-page .policy-lead {
@@ -19,14 +23,21 @@ const POLICY_STYLES = `
     margin-bottom: 2.5rem;
   }
 
+  .policy-page .policy-wrap > h2,
   .policy-page .policy-section h2 {
     font-family: 'Bebas Neue', cursive;
     font-size: 1.75rem;
     letter-spacing: 0.08em;
     color: #c9a961;
-    margin: 0 0 0.85rem;
+    margin: 2.25rem 0 0.85rem;
   }
 
+  .policy-page .policy-wrap > h2:first-of-type {
+    margin-top: 0;
+  }
+
+  .policy-page .policy-wrap > p,
+  .policy-page .policy-wrap > ul,
   .policy-page .policy-section p,
   .policy-page .policy-section li {
     color: #ccc;
@@ -34,6 +45,7 @@ const POLICY_STYLES = `
     font-size: 1.05rem;
   }
 
+  .policy-page .policy-wrap > p,
   .policy-page .policy-section p {
     margin-bottom: 1rem;
   }
@@ -42,21 +54,25 @@ const POLICY_STYLES = `
     margin-bottom: 0;
   }
 
+  .policy-page .policy-wrap strong,
   .policy-page .policy-section strong {
     color: #c9a961;
     font-weight: 600;
   }
 
+  .policy-page .policy-wrap a,
   .policy-page .policy-section a {
     color: #c9a961;
     text-decoration: none;
     border-bottom: 1px solid rgba(201,169,97,0.4);
   }
 
+  .policy-page .policy-wrap a:hover,
   .policy-page .policy-section a:hover {
     border-color: #c9a961;
   }
 
+  .policy-page .policy-wrap > ul,
   .policy-page .policy-section ul {
     padding-left: 1.25rem;
     margin: 0.5rem 0 1rem;
@@ -131,6 +147,7 @@ const POLICY_STYLES = `
   .policy-card-body a {
     color: #c9a961;
     text-decoration: none;
+    border-bottom: none;
   }
 
   .policy-card-body a:hover {
@@ -188,13 +205,28 @@ interface PolicyPageProps {
   title: string
   subtitle: string
   lead?: string
+  description?: string
+  path?: string
   children: ReactNode
   wide?: boolean
 }
 
-function PolicyPage({ title, subtitle, lead, children, wide }: PolicyPageProps) {
+export default function PolicyPage({
+  title,
+  subtitle,
+  lead,
+  description,
+  path,
+  children,
+  wide,
+}: PolicyPageProps) {
   return (
     <div className="page policy-page">
+      <Seo
+        title={`${title} | ${shopInfo.name}`}
+        description={description || `${title} — ${shopInfo.name} in ${shopInfo.city}, ${shopInfo.state}.`}
+        path={path}
+      />
       <style>{POLICY_STYLES}</style>
       <div className="page-header">
         <h1 className="glitch" data-text={title}>{title}</h1>
@@ -207,5 +239,3 @@ function PolicyPage({ title, subtitle, lead, children, wide }: PolicyPageProps) 
     </div>
   )
 }
-
-export default PolicyPage
