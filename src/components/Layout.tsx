@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
+import { CartProvider } from '../context/CartContext'
+import CartDrawer from './CartDrawer'
+import NavSearch from './NavSearch'
+import RouteSeo from './RouteSeo'
+import { shopInfo } from '../lib/shopInfo'
 
 const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a']
 const PARTICLES = ['🛹','🔥','⚡','✦','🤘','💀','⭐','🛹','🔥','⚡','✦','🤘']
@@ -283,12 +288,24 @@ function Layout() {
         </Link>
 
         {/* Desktop nav */}
+        <div className="nav-right">
         <div className="nav-links">
           {navLinks.map(({ to, label }) => (
-            <Link key={to} to={to} className={location.pathname === to ? 'active' : ''}>
+            <Link
+              key={to}
+              to={to}
+              className={
+                to === '/shop'
+                  ? (location.pathname === '/shop' || location.pathname.startsWith('/shop/') ? 'active' : '')
+                  : location.pathname === to ? 'active' : ''
+              }
+            >
               {label}
             </Link>
           ))}
+        </div>
+
+        <NavSearch id="nav-search-desktop" className="nav-search-desktop" />
         </div>
 
         {/* Hamburger button — mobile only */}
@@ -313,12 +330,17 @@ function Layout() {
       <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>
         <div className="mobile-menu-inner">
           <img src="/logo.jpeg" alt="Hart Boys" className="mobile-menu-logo" />
+          <NavSearch id="nav-search-mobile" className="nav-search-mobile" onSubmitExtra={() => setMenuOpen(false)} />
           <nav className="mobile-nav-links">
             {navLinks.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
-                className={`mobile-nav-link ${location.pathname === to ? 'active' : ''}`}
+                className={`mobile-nav-link ${
+                  to === '/shop'
+                    ? (location.pathname === '/shop' || location.pathname.startsWith('/shop/') ? 'active' : '')
+                    : location.pathname === to ? 'active' : ''
+                }`}
                 onClick={() => setMenuOpen(false)}
               >
                 {label}
@@ -326,29 +348,43 @@ function Layout() {
             ))}
           </nav>
           <div className="mobile-menu-footer">
-            <a href="https://instagram.com/hartboysskateshop" target="_blank" rel="noreferrer">INSTAGRAM</a>
-            <a href="https://facebook.com/hartboysskateshop" target="_blank" rel="noreferrer">FACEBOOK</a>
+            <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer">INSTAGRAM</a>
+            <Link to="/shipping" onClick={() => setMenuOpen(false)}>SHIPPING</Link>
+            <Link to="/privacy" onClick={() => setMenuOpen(false)}>PRIVACY</Link>
+            <Link to="/terms" onClick={() => setMenuOpen(false)}>TERMS</Link>
           </div>
         </div>
       </div>
 
-      <main>
-        <Outlet />
-      </main>
+      <CartProvider>
+        <RouteSeo />
+        <CartDrawer />
+        <main>
+          <Outlet />
+        </main>
 
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
-            <p>Peninsula Center Mall<br />Suite 48C • Soldotna, AK<br />Mon–Sat: 10AM–7PM</p>
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-brand">
+              <img src="/logo.jpeg" alt="Hart Boys" className="footer-logo" />
+              <p>
+                {shopInfo.mall}<br />
+                {shopInfo.suite} • {shopInfo.city}, {shopInfo.state}<br />
+                {shopInfo.hours.winter.label}: {shopInfo.hours.winter.days} {shopInfo.hours.winter.time}<br />
+                {shopInfo.hours.summer.label}: {shopInfo.hours.summer.days} {shopInfo.hours.summer.time}
+              </p>
+            </div>
+            <div className="footer-links">
+              <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer">INSTAGRAM</a>
+              <a href={shopInfo.facebookUrl} target="_blank" rel="noreferrer">FACEBOOK</a>
+              <Link to="/shipping">SHIPPING</Link>
+              <Link to="/privacy">PRIVACY</Link>
+              <Link to="/terms">TERMS</Link>
+            </div>
           </div>
-          <div className="footer-links">
-            <a href="https://instagram.com/hartboysskateshop">INSTAGRAM</a>
-            <a href="https://facebook.com/hartboysskateshop">FACEBOOK</a>
-          </div>
-        </div>
-        <p className="copyright">© 2025 HART BOYS SKATE SHOP • MON–SAT 10AM–7PM</p>
-      </footer>
+          <p className="copyright">© {new Date().getFullYear()} {shopInfo.name.toUpperCase()} • {shopInfo.city.toUpperCase()}, {shopInfo.state}</p>
+        </footer>
+      </CartProvider>
     </div>
   )
 }

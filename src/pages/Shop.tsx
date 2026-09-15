@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react"
-import { getProducts, createCheckout } from "../lib/shopify"
+import { Link, useSearchParams } from "react-router-dom"
+import { getProducts } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
+import { pickStaffPicks } from "../lib/stock"
 import { useScrollReveal } from "../hooks/useScrollReveal"
+import { useCart } from "../context/CartContext"
 
 const GOLD = '#C9A961'
 const GOLD_LIGHT = '#D4AF37'
@@ -101,35 +104,21 @@ function isNew(createdAt: string) {
 const PER_PAGE = 16
 
 export default function Shop() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { addItem, setIsCartOpen } = useCart()
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '')
   const [sortBy, setSortBy] = useState('newest')
   const [expandedCats, setExpandedCats] = useState<string[]>(['skate'])
   const [page, setPage] = useState(1)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [cart, setCart] = useState<any[]>(() => {
-    try { return JSON.parse(localStorage.getItem('hb_cart') || '[]') } catch { return [] }
-  })
-  const [isCartOpen, setIsCartOpen] = useState(false)
-  const [cartAnimating, setCartAnimating] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
-  const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [orderNote, setOrderNote] = useState(() => {
-    try {
-      const note = localStorage.getItem('hb_order_note') || ''
-      if (note) localStorage.removeItem('hb_order_note')
-      return note
-    } catch { return '' }
-  })
   const [addedProduct, setAddedProduct] = useState<string | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
-  const [modalImageIdx, setModalImageIdx] = useState(0)
   const [confetti, setConfetti] = useState<{ id: number; x: number; y: number; icon: string }[]>([])
   const [searchFocused, setSearchFocused] = useState(false)
   const [recentlyViewed, setRecentlyViewed] = useState<any[]>(() => {
@@ -142,13 +131,20 @@ export default function Shop() {
   // Re-run scroll reveal whenever products, page, or active filters change
   useScrollReveal([products, page, activeCategory, activeSubcategory, searchTerm])
 
-  // Persist cart to localStorage so items survive page navigation
+  const qParam = searchParams.get('q') || ''
   useEffect(() => {
-    try { localStorage.setItem('hb_cart', JSON.stringify(cart)) } catch {}
-  }, [cart])
+    setSearchTerm(qParam)
+    setPage(1)
+  }, [qParam])
 
-  // Reset gallery index whenever a new product modal opens
-  useEffect(() => { setModalImageIdx(0) }, [selectedProduct])
+  const setSearch = (value: string) => {
+    setSearchTerm(value)
+    setPage(1)
+    const next = new URLSearchParams(searchParams)
+    if (value.trim()) next.set('q', value.trim())
+    else next.delete('q')
+    setSearchParams(next, { replace: true })
+  }
 
   useEffect(() => {
     getProducts()
@@ -167,12 +163,6 @@ export default function Shop() {
     const handler = () => { if (window.innerWidth >= 1024) setIsSidebarOpen(false) }
     window.addEventListener('resize', handler)
     return () => window.removeEventListener('resize', handler)
-  }, [])
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedProduct(null) }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   // ── Filter by productType only (no keyword search across title/description) ──
@@ -210,16 +200,13 @@ export default function Shop() {
 
   const clearFilters = () => {
     setActiveCategory('all'); setActiveSubcategory(null)
-    setSearchTerm(''); setSortBy('newest'); setPage(1)
+    setSearch(''); setSortBy('newest'); setPage(1)
   }
 
   const hasActiveFilters = activeCategory !== 'all' || !!searchTerm
 
-  // Staff picks: products tagged 'staff-pick' in Shopify, or fall back to 4 newest
-  const staffPicks = (() => {
-    const tagged = products.filter(p => (p.tags || []).map((t: string) => t.toLowerCase()).includes('staff-pick'))
-    return (tagged.length >= 2 ? tagged : products.slice(0, 4)).slice(0, 6)
-  })()
+  // Staff picks: in-stock `staff-pick` tags, else newest in-stock
+  const staffPicks = pickStaffPicks(products, 6)
 
   const currentLabel = (() => {
     if (searchTerm) return `Results for "${searchTerm}"`
@@ -255,26 +242,23 @@ export default function Shop() {
 
   const addToCart = (p: any, e?: React.MouseEvent) => {
     e?.stopPropagation()
+    e?.preventDefault()
     const v = getVariant(p)
     if (!v || !v.availableForSale) return
-    const exists = cart.find(i => i.variantId === v.id)
-    if (exists) {
-      setCart(cart.map(i => i.variantId === v.id ? { ...i, quantity: i.quantity + 1 } : i))
-    } else {
-      setCart([...cart, {
-        variantId: v.id, title: p.title, vendor: p.vendor, variantTitle: v.title,
-        price: v.price?.amount || p.priceRange.minVariantPrice.amount,
-        image: p.images.edges[0]?.node.url, quantity: 1
-      }])
-    }
+    addItem({
+      variantId: v.id,
+      title: p.title,
+      vendor: p.vendor,
+      variantTitle: v.title,
+      price: v.price?.amount || p.priceRange.minVariantPrice.amount,
+      image: p.images.edges[0]?.node.url,
+      quantity: 1,
+      productType: p.productType,
+    })
     spawnConfetti(e)
-    setCartAnimating(true)
     setAddedProduct(p.id)
-    setTimeout(() => { setCartAnimating(false); setAddedProduct(null) }, 1200)
-    setIsCartOpen(true)
+    setTimeout(() => { setAddedProduct(null) }, 1200)
   }
-
-  const removeFromCart = (id: string) => setCart(cart.filter(i => i.variantId !== id))
 
   const trackRecentlyViewed = (product: any) => {
     setRecentlyViewed(prev => {
@@ -295,39 +279,16 @@ export default function Shop() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-  const updateQty = (id: string, delta: number) =>
-    setCart(cart.map(i => i.variantId === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i))
-
-  const cartTotal = cart.reduce((s, i) => s + parseFloat(i.price) * i.quantity, 0)
-  const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
-
-  const handleCheckout = async () => {
-    if (!cart.length) return
-    setIsCheckingOut(true)
-    setCheckoutError(null)
-    try {
-      const checkout = await createCheckout(cart, orderNote)
-      // Redirect to Shopify-hosted checkout
-      window.location.href = checkout.url
-    } catch (err: any) {
-      const msg = err.message || 'Checkout failed. Please try again.'
-      setCheckoutError(msg)
-      setIsCheckingOut(false)
-    }
-  }
 
   // Detect if customer returned from a cancelled Shopify checkout
-  // OR came from Build-a-Board with ?open_cart=1
   const [checkoutCancelled, setCheckoutCancelled] = useState(false)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('checkout_cancelled') === '1') {
       setCheckoutCancelled(true)
-      window.history.replaceState({}, '', '/shop')
-    }
-    if (params.get('open_cart') === '1') {
-      setIsCartOpen(true)
-      window.history.replaceState({}, '', '/shop')
+      params.delete('checkout_cancelled')
+      const next = params.toString()
+      window.history.replaceState({}, '', `/shop${next ? `?${next}` : ''}`)
     }
   }, [])
 
@@ -345,7 +306,7 @@ export default function Shop() {
             type="text"
             placeholder="Search products..."
             value={searchTerm}
-            onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
+            onChange={e => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
             onKeyDown={e => e.key === 'Escape' && setSearchFocused(false)}
             style={{
@@ -357,7 +318,7 @@ export default function Shop() {
             }}
           />
           {searchTerm && (
-            <button onClick={() => { setSearchTerm(''); setPage(1); searchRef.current?.focus() }}
+            <button onClick={() => { setSearch(''); searchRef.current?.focus() }}
               style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }}>×</button>
           )}
         </div>
@@ -379,14 +340,14 @@ export default function Shop() {
                     const img = p.images.edges[0]?.node.url
                     const price = p.priceRange.minVariantPrice.amount
                     return (
-                      <button key={p.id} onMouseDown={() => {
-                        setSelectedProduct(p); trackRecentlyViewed(p)
-                        setSearchFocused(false); setSearchTerm('')
+                      <Link key={p.id} to={`/shop/${p.handle}`} onMouseDown={() => {
+                        trackRecentlyViewed(p)
+                        setSearchFocused(false)
                       }} style={{
                         width: '100%', display: 'flex', alignItems: 'center', gap: '0.625rem',
                         padding: '0.6rem 0.75rem', background: 'none', border: 'none',
                         borderBottom: `1px solid ${BORDER}`, cursor: 'pointer', textAlign: 'left',
-                        transition: 'background 0.15s',
+                        transition: 'background 0.15s', textDecoration: 'none',
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = BG3)}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
@@ -399,7 +360,7 @@ export default function Shop() {
                           {p.vendor && <p style={{ margin: 0, color: MUTED, fontSize: '0.68rem' }}>{p.vendor}</p>}
                         </div>
                         <span style={{ color: GOLD, fontWeight: 700, fontSize: '0.8rem', flexShrink: 0 }}>${parseFloat(price).toFixed(2)}</span>
-                      </button>
+                      </Link>
                     )
                   })}
                   <button onMouseDown={() => { setSearchFocused(false) }}
@@ -652,39 +613,6 @@ export default function Shop() {
         </div>
       )}
 
-      {/* ── CART FAB ─────────────────────────────────────── */}
-      <button
-        onClick={() => setIsCartOpen(true)}
-        style={{
-          position: 'fixed', bottom: 24, right: 20,
-          width: 56, height: 56, borderRadius: '50%',
-          background: cartCount > 0 ? GOLD : '#222',
-          border: `2px solid ${cartCount > 0 ? GOLD : BORDER}`,
-          color: cartCount > 0 ? BG : MUTED,
-          cursor: 'pointer', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1.3rem',
-          boxShadow: cartCount > 0 ? `0 4px 20px rgba(201,169,97,0.35)` : 'none',
-          transform: cartAnimating ? 'scale(1.18)' : 'scale(1)',
-          transition: 'all 0.25s',
-        }}
-        aria-label="Open cart"
-      >
-        🛒
-        {cartCount > 0 && (
-          <span style={{
-            position: 'absolute', top: -6, right: -6,
-            background: RED, color: '#fff',
-            width: 20, height: 20, borderRadius: '50%',
-            fontSize: '0.65rem', fontWeight: 700,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: `2px solid ${BG}`
-          }}>
-            {cartCount > 99 ? '99+' : cartCount}
-          </span>
-        )}
-      </button>
-
       {/* ── CONFETTI OVERLAY ─────────────────────────────── */}
       <div className="confetti-container" aria-hidden="true">
         {confetti.map((c, i) => {
@@ -710,286 +638,6 @@ export default function Shop() {
             </span>
           )
         })}
-      </div>
-
-      {/* ── PRODUCT DETAIL MODAL ─────────────────────────── */}
-      {selectedProduct && (() => {
-        const p = selectedProduct
-        const img = p.images.edges[0]?.node.url
-        const variant = getVariant(p)
-        const inStock = variant?.availableForSale ?? false
-        const qty = variant?.quantityAvailable ?? 0
-        const price = parseFloat(p.priceRange.minVariantPrice.amount)
-        const variants = p.variants.edges
-        const justAdded = addedProduct === p.id
-        return (
-          <>
-            <div onClick={() => setSelectedProduct(null)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(6px)', zIndex: 9990 }} />
-            <div className="modal-inner" style={{
-              position: 'fixed', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 'min(860px, 94vw)', maxHeight: '90vh',
-              background: BG2, borderRadius: 12,
-              border: `1px solid ${BORDER}`,
-              boxShadow: '0 24px 80px rgba(0,0,0,0.8)',
-              zIndex: 9991, display: 'flex', flexDirection: 'column',
-              overflow: 'hidden'
-            }}>
-              {/* Close button */}
-              <button className="modal-close" onClick={() => setSelectedProduct(null)}
-                style={{
-                  position: 'absolute', top: 12, right: 12,
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: BG3, border: `1px solid ${BORDER}`,
-                  color: MUTED, fontSize: '1.2rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 1, transition: 'color 0.15s, background 0.15s', lineHeight: 1
-                }}>×</button>
-
-              <div style={{ display: 'flex', flexDirection: 'row', overflow: 'hidden', flex: 1 }}>
-                {/* Image */}
-                <div style={{ width: '45%', flexShrink: 0, background: BG3, position: 'relative' }}>
-                  {img
-                    ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    : <div style={{ width: '100%', height: '100%', minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', color: MUTED, opacity: 0.3 }}>🛹</div>
-                  }
-                  {!inStock && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ background: '#111', color: MUTED, padding: '0.4rem 0.9rem', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', borderRadius: 4, border: `1px solid ${BORDER}` }}>SOLD OUT</span>
-                    </div>
-                  )}
-                  {inStock && qty > 0 && qty <= 3 && (
-                    <span style={{ position: 'absolute', top: 12, left: 12, background: RED, color: '#fff', padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 700, borderRadius: 4, letterSpacing: '0.06em' }}>
-                      ONLY {qty} LEFT
-                    </span>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="scrollbar-thin" style={{ flex: 1, padding: '2rem 1.75rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-                  {p.vendor && (
-                    <p style={{ margin: 0, color: GOLD, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{p.vendor}</p>
-                  )}
-                  <h2 style={{ margin: 0, color: TEXT, fontSize: '1.3rem', fontWeight: 700, lineHeight: 1.35 }}>{p.title}</h2>
-                  <p style={{ margin: 0, color: GOLD, fontSize: '1.4rem', fontWeight: 700 }}>${price.toFixed(2)}</p>
-
-                  {p.description && (
-                    <p style={{ margin: 0, color: MUTED, fontSize: '0.875rem', lineHeight: 1.65 }}>{p.description}</p>
-                  )}
-
-                  {variants.length > 1 && (
-                    <div>
-                      <p style={{ margin: '0 0 0.4rem', color: MUTED, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em' }}>SELECT VARIANT</p>
-                      <select value={variant?.id || ''}
-                        onChange={e => {
-                          const v = variants.find((x: any) => x.node.id === e.target.value)
-                          if (v) setSelectedVariants(prev => ({ ...prev, [p.id]: (v as any).node.id }))
-                        }}
-                        style={{ width: '100%', padding: '0.5rem 0.75rem', background: BG3, border: `1px solid ${BORDER}`, color: TEXT, borderRadius: 6, fontSize: '0.875rem', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}
-                        onFocus={e => (e.target.style.borderColor = GOLD)}
-                        onBlur={e => (e.target.style.borderColor = BORDER)}>
-                        {variants.map((v: any) => (
-                          <option key={v.node.id} value={v.node.id} disabled={!v.node.availableForSale} style={{ background: BG2 }}>
-                            {v.node.title}{!v.node.availableForSale ? ' — Sold Out' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <button className="add-btn" onClick={e => addToCart(p, e)} disabled={!inStock}
-                    style={{
-                      marginTop: 'auto', padding: '0.85rem',
-                      background: justAdded ? '#1a3a1a' : (inStock ? GOLD : '#222'),
-                      border: justAdded ? `1px solid #3a6a3a` : 'none',
-                      color: justAdded ? '#6fcf6f' : (inStock ? BG : MUTED),
-                      borderRadius: 7, fontWeight: 700, fontSize: '0.9rem',
-                      cursor: inStock ? 'pointer' : 'not-allowed',
-                      letterSpacing: '0.06em', fontFamily: 'inherit', width: '100%'
-                    }}>
-                    {justAdded ? '✓ ADDED TO CART' : (inStock ? 'ADD TO CART' : 'SOLD OUT')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )
-      })()}
-
-      {/* ── CART OVERLAY ─────────────────────────────────── */}
-      {isCartOpen && (
-        <div onClick={() => setIsCartOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)', zIndex: 9997 }} />
-      )}
-
-      {/* ── CART SIDEBAR ─────────────────────────────────── */}
-      <div className="cart-sidebar" style={{
-        position: 'fixed', top: 0, right: isCartOpen ? 0 : '-110%',
-        maxWidth: '95vw', height: '100vh',
-        background: BG2, zIndex: 9998,
-        transition: 'right 0.32s cubic-bezier(0.16,1,0.3,1)',
-        display: 'flex', flexDirection: 'column',
-        borderLeft: `2px solid ${GOLD}`,
-        boxShadow: isCartOpen ? '-8px 0 48px rgba(0,0,0,0.7)' : 'none'
-      }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.125rem 1.25rem', borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <span style={{ color: GOLD, fontWeight: 700, letterSpacing: '0.08em', fontSize: '1rem' }}>YOUR CART</span>
-            {cartCount > 0 && (
-              <span style={{ background: GOLD, color: BG, padding: '0.1rem 0.5rem', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>{cartCount}</span>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {cart.length > 0 && (
-              <button onClick={() => setCart([])} style={{ background: 'none', border: 'none', color: MUTED, fontSize: '0.7rem', cursor: 'pointer', letterSpacing: '0.05em', textDecoration: 'underline', textUnderlineOffset: 2, fontFamily: 'inherit' }}>
-                Clear all
-              </button>
-            )}
-            <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', color: MUTED, fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1, padding: '0.2rem 0.4rem', transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = TEXT)} onMouseLeave={e => (e.currentTarget.style.color = MUTED)}>×</button>
-          </div>
-        </div>
-
-        {/* Free shipping banner — fixed, doesn't scroll */}
-        <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: `1px solid rgba(201,169,97,0.2)`, padding: '0.45rem 1.25rem', textAlign: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.07em', fontWeight: 600 }}>🚚 FREE SHIPPING ON ORDERS OVER $150</span>
-        </div>
-
-        <div className="scrollbar-thin" style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
-          {!cart.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: MUTED, textAlign: 'center', gap: '1rem', padding: '2rem' }}>
-              <div style={{ fontSize: '4rem', opacity: 0.15, lineHeight: 1 }}>🛹</div>
-              <div>
-                <p style={{ fontSize: '0.95rem', letterSpacing: '0.08em', fontWeight: 700, color: TEXT, margin: '0 0 0.4rem' }}>YOUR CART IS EMPTY</p>
-                <p style={{ fontSize: '0.78rem', color: MUTED, margin: 0 }}>Add some gear to get started</p>
-              </div>
-              <button onClick={() => setIsCartOpen(false)} style={{ padding: '0.7rem 1.75rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontSize: '0.82rem', letterSpacing: '0.08em', fontFamily: 'inherit', marginTop: '0.5rem' }}>SHOP NOW</button>
-            </div>
-          ) : (
-            cart.map(item => (
-              <div key={item.variantId} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start', padding: '0.875rem', background: BG3, borderRadius: 10, marginBottom: '0.625rem', border: `1px solid ${BORDER}` }}>
-                {/* Product image */}
-                <div style={{ width: 80, height: 80, borderRadius: 8, overflow: 'hidden', background: BG, flexShrink: 0, border: `1px solid ${BORDER}` }}>
-                  {item.image
-                    ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>🛹</div>
-                  }
-                </div>
-                {/* Details */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {item.vendor && <p style={{ margin: '0 0 0.15rem', color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{item.vendor}</p>}
-                  <p style={{ margin: '0 0 0.2rem', color: TEXT, fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</p>
-                  {item.variantTitle && item.variantTitle !== 'Default Title' && (
-                    <p style={{ margin: '0 0 0.5rem', color: MUTED, fontSize: '0.7rem' }}>{item.variantTitle}</p>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem' }}>
-                    {/* Qty stepper */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0', background: '#1a1a1a', border: `1px solid ${BORDER}`, borderRadius: 6, overflow: 'hidden' }}>
-                      <button className="qty-btn" onClick={() => updateQty(item.variantId, -1)} style={{ width: 30, height: 28, background: 'none', border: 'none', color: TEXT, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                      <span style={{ minWidth: 28, textAlign: 'center', fontWeight: 700, color: TEXT, fontSize: '0.85rem', borderLeft: `1px solid ${BORDER}`, borderRight: `1px solid ${BORDER}`, lineHeight: '28px' }}>{item.quantity}</span>
-                      <button className="qty-btn" onClick={() => updateQty(item.variantId, 1)} style={{ width: 30, height: 28, background: 'none', border: 'none', color: TEXT, cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
-                    </div>
-                    {/* Price */}
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: GOLD, fontWeight: 700, fontSize: '0.9rem' }}>${(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
-                      {item.quantity > 1 && <div style={{ color: MUTED, fontSize: '0.65rem' }}>${parseFloat(item.price).toFixed(2)} each</div>}
-                    </div>
-                  </div>
-                  {/truck/i.test(item.title + ' ' + (item.productType || '')) && item.quantity % 2 !== 0 && (
-                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.7rem', color: '#f5a623', background: 'rgba(245,166,35,0.08)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 5, padding: '0.3rem 0.5rem', lineHeight: 1.4 }}>
-                      🛹 A quantity of <strong>2</strong> trucks is required for a complete board.
-                    </p>
-                  )}
-                </div>
-                {/* Remove button — trash icon */}
-                <button className="cart-remove" onClick={() => removeFromCart(item.variantId)}
-                  title="Remove item"
-                  style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '0.25rem', flexShrink: 0, transition: 'color 0.15s', lineHeight: 1 }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')} onMouseLeave={e => (e.currentTarget.style.color = '#444')}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-
-        {cart.length > 0 && (
-          <div style={{ padding: '1.125rem 1.25rem', borderTop: `1px solid ${BORDER}` }}>
-            {/* ── FREE SHIPPING BAR ── */}
-            {(() => {
-              const FREE_SHIP = 150
-              const remaining = Math.max(0, FREE_SHIP - cartTotal)
-              const pct = Math.min(100, (cartTotal / FREE_SHIP) * 100)
-              const unlocked = cartTotal >= FREE_SHIP
-              return (
-                <div style={{ marginBottom: '1rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '0.65rem 0.75rem' }}>
-                  <p style={{ margin: '0 0 0.45rem', fontSize: '0.72rem', color: unlocked ? '#4ade80' : MUTED, letterSpacing: '0.05em', textAlign: 'center' }}>
-                    {unlocked
-                      ? '🎉 You\'ve unlocked FREE SHIPPING!'
-                      : `🚚 Add $${remaining.toFixed(2)} more for FREE shipping`}
-                  </p>
-                  <div style={{ height: 6, background: '#2a2a2a', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${pct}%`,
-                      background: unlocked ? '#4ade80' : `linear-gradient(90deg, ${GOLD}, #e8a020)`,
-                      borderRadius: 99,
-                      transition: 'width 0.4s ease'
-                    }} />
-                  </div>
-                </div>
-              )
-            })()}
-            {/* ── ORDER NOTE ── */}
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', color: MUTED, fontSize: '0.72rem', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>ORDER NOTE (OPTIONAL)</label>
-              <textarea
-                value={orderNote}
-                onChange={e => setOrderNote(e.target.value)}
-                placeholder="Special instructions, gift messages, delivery notes..."
-                rows={3}
-                style={{
-                  width: '100%', background: '#1a1a1a', border: `1px solid ${BORDER}`,
-                  borderRadius: 6, color: TEXT, fontSize: '0.8rem', padding: '0.5rem 0.625rem',
-                  resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.2s'
-                }}
-                onFocus={e => e.target.style.borderColor = GOLD}
-                onBlur={e => e.target.style.borderColor = BORDER}
-              />
-            </div>
-            {checkoutError && (
-              <div style={{ background: 'rgba(220,38,38,0.12)', border: `1px solid ${RED}`, color: '#f87171', padding: '0.625rem 0.875rem', borderRadius: 6, marginBottom: '0.875rem', fontSize: '0.82rem' }}>
-                {checkoutError}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1rem' }}>
-              <span style={{ color: MUTED, fontSize: '0.82rem', letterSpacing: '0.06em' }}>SUBTOTAL ({cartCount} {cartCount === 1 ? 'item' : 'items'})</span>
-              <span style={{ color: GOLD, fontSize: '1.4rem', fontWeight: 700 }}>${cartTotal.toFixed(2)}</span>
-            </div>
-            <button onClick={handleCheckout} disabled={isCheckingOut}
-              style={{
-                width: '100%', padding: '0.9rem',
-                background: isCheckingOut ? '#2a2a2a' : GOLD,
-                color: isCheckingOut ? MUTED : BG,
-                border: 'none', borderRadius: 6, fontWeight: 700, fontSize: '0.95rem',
-                letterSpacing: '0.08em', cursor: isCheckingOut ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                transition: 'background 0.2s', fontFamily: 'inherit',
-                boxShadow: isCheckingOut ? 'none' : `0 4px 16px rgba(201,169,97,0.28)`
-              }}>
-              {isCheckingOut
-                ? <><span style={{ width: 16, height: 16, border: `2px solid #555`, borderTopColor: GOLD, borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> PROCESSING...</>
-                : 'PROCEED TO CHECKOUT'
-              }
-            </button>
-            <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.72rem', marginTop: '0.75rem', letterSpacing: '0.04em' }}>🔒 Secure checkout via Shopify</p>
-          </div>
-        )}
       </div>
 
       {/* ── MOBILE FILTER DRAWER OVERLAY ─────────────────── */}
@@ -1063,7 +711,7 @@ export default function Shop() {
             type="text"
             placeholder="Search products..."
             value={searchTerm}
-            onChange={e => { setSearchTerm(e.target.value); setPage(1) }}
+            onChange={e => setSearch(e.target.value)}
             style={{
               width: '100%', padding: '0.45rem 2rem 0.45rem 0.75rem',
               background: BG3, border: `1px solid ${BORDER}`,
@@ -1074,7 +722,7 @@ export default function Shop() {
             onBlur={e => (e.target.style.borderColor = BORDER)}
           />
           {searchTerm && (
-            <button onClick={() => { setSearchTerm(''); setPage(1) }}
+            <button onClick={() => setSearch('')}
               style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>×</button>
           )}
         </div>
@@ -1123,14 +771,14 @@ export default function Shop() {
                   const price = parseFloat(p.priceRange.minVariantPrice.amount)
                   const inStock = p.variants.edges[0]?.node.availableForSale ?? false
                   return (
-                    <div key={p.id}
-                      onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
+                    <Link key={p.id} to={`/shop/${p.handle}`}
+                      onClick={() => trackRecentlyViewed(p)}
                       className={`reveal reveal-scale reveal-delay-${(i % 4) + 1}`}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
                         transition: 'border-color 0.2s, transform 0.2s',
-                        overflow: 'hidden',
+                        overflow: 'hidden', textDecoration: 'none',
                       }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = GOLD; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.transform = '' }}
@@ -1146,7 +794,7 @@ export default function Shop() {
                         <p style={{ margin: 0, color: GOLD, fontSize: '0.85rem', fontWeight: 700 }}>${price.toFixed(2)}</p>
                         {!inStock && <p style={{ margin: '0.25rem 0 0', color: MUTED, fontSize: '0.62rem', letterSpacing: '0.06em' }}>SOLD OUT</p>}
                       </div>
-                    </div>
+                    </Link>
                   )
                 })}
               </div>
@@ -1168,9 +816,9 @@ export default function Shop() {
 
                 return (
                   <div key={p.id} className={`product-card prod-card-wrap reveal reveal-delay-${(idx % 4) + 1}`}
-                    onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
-                    style={{ background: BG2, borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', cursor: 'pointer' }}>
+                    style={{ background: BG2, borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ position: 'relative', aspectRatio: '1', background: BG3, overflow: 'hidden' }}>
+                      <Link to={`/shop/${p.handle}`} onClick={() => trackRecentlyViewed(p)} style={{ display: 'block', color: 'inherit', textDecoration: 'none', height: '100%' }}>
                       {img
                         ? <img src={img} alt={p.title} className="card-img" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.35s ease', display: 'block' }} />
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontSize: '2.5rem', opacity: 0.3 }}>🛹</div>
@@ -1190,6 +838,7 @@ export default function Shop() {
                           NEW
                         </span>
                       )}
+                      </Link>
                       {/* Quick Add button — slides up on hover */}
                       {inStock && (
                         <button
@@ -1206,7 +855,7 @@ export default function Shop() {
                         <p className="card-vendor" style={{ margin: 0, color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>
                       )}
                       <h3 className="card-title" style={{ margin: 0, color: TEXT, fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
-                        {p.title}
+                        <Link to={`/shop/${p.handle}`} onClick={() => trackRecentlyViewed(p)} style={{ color: 'inherit', textDecoration: 'none' }}>{p.title}</Link>
                       </h3>
 
                       {variants.length > 1 && (
@@ -1298,13 +947,14 @@ export default function Shop() {
                   const price = parseFloat(p.priceRange?.minVariantPrice?.amount ?? '0')
                   const inStock = p.variants?.edges?.[0]?.node?.availableForSale ?? false
                   return (
-                    <div key={p.id}
-                      onClick={() => { setSelectedProduct(p); trackRecentlyViewed(p) }}
+                    <Link key={p.id} to={p.handle ? `/shop/${p.handle}` : '/shop'}
+                      onClick={() => trackRecentlyViewed(p)}
                       style={{
                         minWidth: 140, maxWidth: 140, background: BG3, borderRadius: 8,
                         border: `1px solid ${BORDER}`, cursor: 'pointer', flexShrink: 0,
                         overflow: 'hidden', transition: 'border-color 0.2s, transform 0.2s',
                         animation: `fadeUp 0.35s ease ${i * 0.06}s both`,
+                        textDecoration: 'none',
                       }}
                       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = GOLD; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
                       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = BORDER; (e.currentTarget as HTMLElement).style.transform = '' }}
@@ -1324,7 +974,7 @@ export default function Shop() {
                         <p style={{ margin: 0, color: TEXT, fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '0.25rem' }}>{p.title}</p>
                         <p style={{ margin: 0, color: GOLD, fontSize: '0.85rem', fontWeight: 700 }}>${price.toFixed(2)}</p>
                       </div>
-                    </div>
+                    </Link>
                   )
                 })}
               </div>
@@ -1334,190 +984,6 @@ export default function Shop() {
         </div>
       </div>
 
-      {/* ── PRODUCT DETAIL MODAL ─────────────────────────── */}
-      {selectedProduct && (() => {
-        const mp = selectedProduct
-        const images: { url: string; altText: string }[] = mp.images.edges.map((e: any) => e.node)
-        const mVariant = getVariant(mp)
-        const mInStock = mVariant?.availableForSale ?? false
-        const mPrice = parseFloat(mp.priceRange.minVariantPrice.amount)
-        const mVariants = mp.variants.edges
-        const mJustAdded = addedProduct === mp.id
-        const clampedIdx = Math.min(modalImageIdx, images.length - 1)
-        const currentImg = images[clampedIdx]?.url
-        const hasMultiple = images.length > 1
-
-        return (
-          <>
-            {/* Backdrop */}
-            <div
-              onClick={() => setSelectedProduct(null)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(6px)', zIndex: 10000 }}
-            />
-
-            {/* Modal box */}
-            <div style={{
-              position: 'fixed', inset: 0, zIndex: 10001,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '1rem', pointerEvents: 'none'
-            }}>
-              <div className="modal-inner" style={{
-                pointerEvents: 'auto',
-                background: BG2, borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                width: '100%', maxWidth: 860,
-                maxHeight: '92vh', overflowY: 'auto',
-                display: 'flex', flexDirection: 'column',
-                boxShadow: '0 24px 80px rgba(0,0,0,0.8)'
-              }}>
-                {/* Close */}
-                <button
-                  className="modal-close"
-                  onClick={() => setSelectedProduct(null)}
-                  style={{
-                    position: 'absolute', top: 12, right: 12,
-                    width: 36, height: 36, borderRadius: '50%',
-                    background: 'rgba(0,0,0,0.6)', border: `1px solid ${BORDER}`,
-                    color: MUTED, fontSize: '1.25rem', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 10, transition: 'color 0.15s, background 0.15s', lineHeight: 1
-                  }}>×</button>
-
-                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-
-                  {/* ── Left: Image gallery ── */}
-                  <div style={{ flex: '1 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1.25rem' }}>
-
-                    {/* Main image */}
-                    <div style={{ position: 'relative', aspectRatio: '1', background: BG3, borderRadius: 8, overflow: 'hidden' }}>
-                      {currentImg
-                        ? <img src={currentImg} alt={mp.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem', opacity: 0.2 }}>🛹</div>
-                      }
-
-                      {/* Prev / Next arrows */}
-                      {hasMultiple && (
-                        <>
-                          <button
-                            onClick={e => { e.stopPropagation(); setModalImageIdx(i => (i - 1 + images.length) % images.length) }}
-                            style={{
-                              position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                              width: 36, height: 36, borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.65)', border: `1px solid ${BORDER}`,
-                              color: TEXT, fontSize: '1rem', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}>‹</button>
-                          <button
-                            onClick={e => { e.stopPropagation(); setModalImageIdx(i => (i + 1) % images.length) }}
-                            style={{
-                              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                              width: 36, height: 36, borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.65)', border: `1px solid ${BORDER}`,
-                              color: TEXT, fontSize: '1rem', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}>›</button>
-                          {/* Counter */}
-                          <span style={{
-                            position: 'absolute', bottom: 10, right: 12,
-                            background: 'rgba(0,0,0,0.7)', color: MUTED,
-                            fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: 4
-                          }}>{clampedIdx + 1} / {images.length}</span>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Thumbnail strip */}
-                    {hasMultiple && (
-                      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem' }} className="scrollbar-thin">
-                        {images.map((img, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setModalImageIdx(i)}
-                            style={{
-                              flexShrink: 0, width: 60, height: 60, borderRadius: 6, overflow: 'hidden',
-                              border: `2px solid ${i === clampedIdx ? GOLD : BORDER}`,
-                              background: BG3, cursor: 'pointer', padding: 0,
-                              transition: 'border-color 0.15s'
-                            }}>
-                            <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── Right: Product info ── */}
-                  <div style={{ flex: '1 1 280px', minWidth: 0, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: `1px solid ${BORDER}` }}>
-                    {mp.vendor && (
-                      <p style={{ margin: 0, color: GOLD, fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{mp.vendor}</p>
-                    )}
-                    <h2 style={{ margin: 0, color: TEXT, fontSize: '1.2rem', fontWeight: 700, lineHeight: 1.35 }}>{mp.title}</h2>
-
-                    <p style={{ margin: 0, color: GOLD, fontSize: '1.5rem', fontWeight: 700 }}>${mPrice.toFixed(2)}</p>
-
-                    {mp.description && (
-                      <p style={{ margin: 0, color: MUTED, fontSize: '0.875rem', lineHeight: 1.7, maxHeight: 120, overflowY: 'auto' }} className="scrollbar-thin">
-                        {mp.description}
-                      </p>
-                    )}
-
-                    {/* Variant selector */}
-                    {mVariants.length > 1 && (
-                      <div>
-                        <p style={{ margin: '0 0 0.4rem', color: MUTED, fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Option</p>
-                        <select
-                          value={mVariant?.id || ''}
-                          onChange={e => {
-                            const v = mVariants.find((x: any) => x.node.id === e.target.value)
-                            if (v) setSelectedVariants(prev => ({ ...prev, [mp.id]: (v as any).node.id }))
-                          }}
-                          style={{
-                            width: '100%', padding: '0.6rem 0.75rem',
-                            background: BG3, border: `1px solid ${BORDER}`,
-                            color: TEXT, borderRadius: 6, fontSize: '0.875rem',
-                            cursor: 'pointer', outline: 'none', fontFamily: 'inherit'
-                          }}
-                          onFocus={e => (e.target.style.borderColor = GOLD)}
-                          onBlur={e => (e.target.style.borderColor = BORDER)}>
-                          {mVariants.map((v: any) => (
-                            <option key={v.node.id} value={v.node.id} disabled={!v.node.availableForSale} style={{ background: BG2 }}>
-                              {v.node.title}{!v.node.availableForSale ? ' — Sold Out' : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Stock status */}
-                    {!mInStock && (
-                      <p style={{ margin: 0, color: RED, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.06em' }}>OUT OF STOCK</p>
-                    )}
-
-                    {/* Add to cart */}
-                    <button
-                      className="add-btn"
-                      onClick={e => addToCart(mp, e)}
-                      disabled={!mInStock}
-                      style={{
-                        padding: '0.875rem',
-                        background: mJustAdded ? '#1a3a1a' : (mInStock ? GOLD : '#222'),
-                        border: mJustAdded ? `1px solid #3a6a3a` : 'none',
-                        color: mJustAdded ? '#6fcf6f' : (mInStock ? BG : MUTED),
-                        borderRadius: 7, fontWeight: 700, fontSize: '0.9rem',
-                        cursor: mInStock ? 'pointer' : 'not-allowed',
-                        letterSpacing: '0.08em', fontFamily: 'inherit',
-                        transition: 'background 0.2s',
-                        boxShadow: mInStock && !mJustAdded ? `0 4px 16px rgba(201,169,97,0.25)` : 'none'
-                      }}>
-                      {mJustAdded ? '✓ ADDED TO CART' : (mInStock ? 'ADD TO CART' : 'SOLD OUT')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )
-      })()}
 
     </div>
   )
