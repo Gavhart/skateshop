@@ -76,7 +76,7 @@ body {
 
 .nav-links {
   display: flex;
-  gap: 2rem;
+  gap: 1.35rem;
 }
 
 .nav-links a {
@@ -3425,10 +3425,63 @@ body.custom-cursor-active * {
 .fresh-card-img {
   width: 100%;
   aspect-ratio: 1;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
-  background: #1a1a1a;
+  background: #0a0a0a;
   transition: transform 0.4s ease;
+}
+
+.starter-home-band {
+  padding: 0 2rem 3rem;
+}
+
+.starter-home-band-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 1.75rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.starter-home-kicker {
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.starter-home-band-inner h2 {
+  font-family: 'Bebas Neue', cursive;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: 0.04em;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.starter-home-band-inner p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  max-width: 560px;
+}
+
+.starter-home-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .starter-home-band { padding: 0 1.25rem 2rem; }
+  .starter-home-band-inner { padding: 1.25rem 1.15rem; }
 }
 
 .fresh-card:hover .fresh-card-img {

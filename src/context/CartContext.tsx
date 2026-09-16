@@ -7,12 +7,14 @@ import {
   cartTotal as sumItems,
   loadCart,
   mergeCartItem,
+  mergeCartItems,
   saveCart,
 } from '../lib/cart'
 
 interface CartContextValue {
   cart: CartItem[]
   addItem: (item: CartItem) => void
+  addItems: (items: CartItem[]) => void
   removeItem: (variantId: string) => void
   updateQty: (variantId: string, delta: number) => void
   clearCart: () => void
@@ -67,6 +69,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsCartOpen(true)
   }, [bumpCart])
 
+  const addItems = useCallback((items: CartItem[]) => {
+    if (!items.length) return
+    setCart(prev => mergeCartItems(prev, items))
+    bumpCart()
+    setIsCartOpen(true)
+  }, [bumpCart])
+
   const removeItem = useCallback((variantId: string) => {
     setCart(prev => prev.filter(i => i.variantId !== variantId))
   }, [])
@@ -98,6 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CartContextValue>(() => ({
     cart,
     addItem,
+    addItems,
     removeItem,
     updateQty,
     clearCart,
@@ -113,7 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     checkoutError,
     handleCheckout,
   }), [
-    cart, addItem, removeItem, updateQty, clearCart,
+    cart, addItem, addItems, removeItem, updateQty, clearCart,
     isCartOpen, cartAnimating, bumpCart, orderNote,
     isCheckingOut, checkoutError, handleCheckout,
   ])

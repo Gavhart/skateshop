@@ -119,10 +119,23 @@ export default function CartDrawer() {
           </div>
         </div>
 
-        <div style={{ background: 'rgba(201,169,97,0.1)', borderBottom: '1px solid rgba(201,169,97,0.2)', padding: '0.5rem 1.25rem', textAlign: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: '0.7rem', color: GOLD, letterSpacing: '0.06em', fontWeight: 600 }}>
-            🚚 FREE SHIPPING ON ORDERS OVER {formatUsd(shopInfo.freeShippingThreshold)} · Pickup at the Soldotna shop
-          </span>
+        <div style={{
+          background: 'linear-gradient(180deg, rgba(201,169,97,0.16) 0%, rgba(201,169,97,0.06) 100%)',
+          borderBottom: `1px solid rgba(201,169,97,0.35)`,
+          padding: '0.9rem 1.25rem',
+          flexShrink: 0,
+        }}>
+          <p style={{ margin: 0, color: GOLD, fontSize: '0.92rem', fontWeight: 800, letterSpacing: '0.06em' }}>
+            Pick up in {shopInfo.city}
+          </p>
+          <p style={{ margin: '0.3rem 0 0', color: TEXT, fontSize: '0.8rem', lineHeight: 1.5 }}>
+            {shopInfo.mall} · {shopInfo.suite}
+          </p>
+          <p style={{ margin: '0.35rem 0 0', color: MUTED, fontSize: '0.72rem', lineHeight: 1.5 }}>
+            Shipping is also available — free at {formatUsd(shopInfo.freeShippingThreshold)}+.
+            {' '}
+            <Link to="/shipping" onClick={() => setIsCartOpen(false)} style={{ color: GOLD }}>Shipping &amp; pickup</Link>
+          </p>
         </div>
 
         <div className="hb-cart-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0.875rem' }}>
@@ -253,9 +266,11 @@ export default function CartDrawer() {
                 : 'PROCEED TO CHECKOUT'}
             </button>
             <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.72rem', marginTop: '0.75rem', letterSpacing: '0.03em', lineHeight: 1.55 }}>
-              Shipping is calculated at checkout. Local pickup at {shopInfo.mall} — choose pickup at checkout if Shopify offers it, or{' '}
-              <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer" style={{ color: GOLD }}>message us on Instagram</a>
-              {' '} / <Link to="/shipping" onClick={() => setIsCartOpen(false)} style={{ color: GOLD }}>see shipping &amp; pickup</Link>.
+              Shipping is calculated at checkout. Prefer pickup? Leave a note or choose pickup at checkout if Shopify shows it — we don’t invent a fake pickup button here.
+              {' '}
+              <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer" style={{ color: GOLD }}>{shopInfo.instagramHandle}</a>
+              {' · '}
+              <Link to="/shipping" onClick={() => setIsCartOpen(false)} style={{ color: GOLD }}>Details</Link>
             </p>
             <p style={{ textAlign: 'center', color: MUTED, fontSize: '0.72rem', marginTop: '0.4rem', letterSpacing: '0.04em' }}>🔒 Secure checkout via Shopify</p>
           </div>

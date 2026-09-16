@@ -42,6 +42,10 @@ export function mergeCartItem(cart: CartItem[], item: CartItem): CartItem[] {
   return [...cart, item]
 }
 
+export function mergeCartItems(cart: CartItem[], items: CartItem[]): CartItem[] {
+  return items.reduce((acc, item) => mergeCartItem(acc, item), cart)
+}
+
 export function cartCount(cart: CartItem[]) {
   return cart.reduce((s, i) => s + i.quantity, 0)
 }

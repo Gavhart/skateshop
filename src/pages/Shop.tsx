@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { getProducts } from "../lib/shopify"
 import { isExcluded } from "../lib/filters"
-import { pickStaffPicks } from "../lib/stock"
+import { isInStock, pickStaffPicks } from "../lib/stock"
 import { useScrollReveal } from "../hooks/useScrollReveal"
 import { useCart } from "../context/CartContext"
 
@@ -113,6 +113,7 @@ export default function Shop() {
   const [activeCategory, setActiveCategory] = useState('all')
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '')
+  const showSoldOut = searchParams.get('oos') === '1'
   const [sortBy, setSortBy] = useState('newest')
   const [expandedCats, setExpandedCats] = useState<string[]>(['skate'])
   const [page, setPage] = useState(1)
@@ -129,7 +130,15 @@ export default function Shop() {
   const searchDropdownRef = useRef<HTMLDivElement>(null)
 
   // Re-run scroll reveal whenever products, page, or active filters change
-  useScrollReveal([products, page, activeCategory, activeSubcategory, searchTerm])
+  useScrollReveal([products, page, activeCategory, activeSubcategory, searchTerm, showSoldOut])
+
+  const setShowSoldOut = (on: boolean) => {
+    const next = new URLSearchParams(searchParams)
+    if (on) next.set('oos', '1')
+    else next.delete('oos')
+    setSearchParams(next, { replace: true })
+    setPage(1)
+  }
 
   const qParam = searchParams.get('q') || ''
   useEffect(() => {
@@ -180,6 +189,7 @@ export default function Shop() {
       }
     }
     if (searchTerm.trim()) result = result.filter(p => matchesSearch(p, searchTerm))
+    if (!showSoldOut) result = result.filter(isInStock)
     return sortProducts(result, sortBy)
   })()
 
@@ -201,6 +211,7 @@ export default function Shop() {
   const clearFilters = () => {
     setActiveCategory('all'); setActiveSubcategory(null)
     setSearch(''); setSortBy('newest'); setPage(1)
+    if (showSoldOut) setShowSoldOut(false)
   }
 
   const hasActiveFilters = activeCategory !== 'all' || !!searchTerm
@@ -292,6 +303,39 @@ export default function Shop() {
     }
   }, [])
 
+  const renderOosToggle = (compact = false) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={showSoldOut}
+      onClick={() => setShowSoldOut(!showSoldOut)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: compact ? '0.4rem' : '0.55rem',
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+        fontFamily: 'inherit', color: showSoldOut ? GOLD : MUTED,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: compact ? 32 : 36, height: compact ? 18 : 20, borderRadius: 99, position: 'relative',
+          background: showSoldOut ? GOLD : '#2a2a2a',
+          border: `1px solid ${showSoldOut ? GOLD : BORDER}`,
+          flexShrink: 0, transition: 'background 0.2s, border-color 0.2s',
+        }}
+      >
+        <span style={{
+          position: 'absolute', top: 2, left: showSoldOut ? (compact ? 16 : 18) : 2,
+          width: compact ? 12 : 14, height: compact ? 12 : 14, borderRadius: '50%',
+          background: showSoldOut ? BG : MUTED, transition: 'left 0.2s',
+        }} />
+      </span>
+      <span style={{ fontSize: compact ? '0.72rem' : '0.8rem', fontWeight: 600, letterSpacing: '0.04em' }}>
+        Show sold out
+      </span>
+    </button>
+  )
+
   /* ─── Sidebar content — render function (not a component) to avoid remount issues ─── */
   const renderSidebar = () => (
     <div style={{ padding: '1rem' }}>
@@ -372,6 +416,18 @@ export default function Shop() {
             </div>
           )
         })()}
+      </div>
+
+      <div style={{
+        marginBottom: '1.35rem', padding: '0.7rem 0.75rem',
+        background: showSoldOut ? 'rgba(201,169,97,0.08)' : BG3,
+        border: `1px solid ${showSoldOut ? GOLD : BORDER}`,
+        borderRadius: 6,
+      }}>
+        {renderOosToggle()}
+        <p style={{ margin: '0.45rem 0 0', color: MUTED, fontSize: '0.68rem', lineHeight: 1.45 }}>
+          {showSoldOut ? 'Including sold-out items.' : 'Shop grid shows in-stock only.'}
+        </p>
       </div>
 
       {/* Category nav */}
@@ -696,6 +752,7 @@ export default function Shop() {
           {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
 
+        {renderOosToggle(true)}
         {hasActiveFilters && (
           <button onClick={clearFilters}
             style={{ padding: '0.5rem 0.75rem', background: 'none', border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 6, cursor: 'pointer', fontSize: '0.78rem', whiteSpace: 'nowrap', fontFamily: 'inherit' }}>
@@ -743,9 +800,12 @@ export default function Shop() {
           <div className="shop-toolbar">
             <div className="reveal">
               <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: TEXT, margin: 0, letterSpacing: '0.04em' }}>{currentLabel}</h1>
-              <p style={{ color: MUTED, fontSize: '0.78rem', margin: '0.15rem 0 0', letterSpacing: '0.04em' }}>{filtered.length} {filtered.length === 1 ? 'product' : 'products'}</p>
+              <p style={{ color: MUTED, fontSize: '0.78rem', margin: '0.15rem 0 0', letterSpacing: '0.04em' }}>
+                {filtered.length} {showSoldOut ? (filtered.length === 1 ? 'product' : 'products') : (filtered.length === 1 ? 'in stock' : 'in stock')}
+              </p>
             </div>
             <div className="toolbar-right">
+              {renderOosToggle()}
               {hasActiveFilters && (
                 <button onClick={clearFilters} style={{ padding: '0.45rem 0.875rem', background: 'none', border: `1px solid ${BORDER}`, color: MUTED, borderRadius: 5, cursor: 'pointer', fontSize: '0.8rem', letterSpacing: '0.04em', fontFamily: 'inherit' }}>
                   Clear filters ×
@@ -785,7 +845,7 @@ export default function Shop() {
                     >
                       <div style={{ aspectRatio: '1', overflow: 'hidden', background: BG }}>
                         {img
-                          ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: MUTED, opacity: 0.3 }}>🛹</div>
                         }
                       </div>
@@ -817,12 +877,21 @@ export default function Shop() {
                 return (
                   <div key={p.id} className={`product-card prod-card-wrap reveal reveal-delay-${(idx % 4) + 1}`}
                     style={{ background: BG2, borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ position: 'relative', aspectRatio: '1', background: BG3, overflow: 'hidden' }}>
+                    <div style={{ position: 'relative', aspectRatio: '1', background: BG, overflow: 'hidden' }}>
                       <Link to={`/shop/${p.handle}`} onClick={() => trackRecentlyViewed(p)} style={{ display: 'block', color: 'inherit', textDecoration: 'none', height: '100%' }}>
                       {img
-                        ? <img src={img} alt={p.title} className="card-img" style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.35s ease', display: 'block' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontSize: '2.5rem', opacity: 0.3 }}>🛹</div>
-                      }
+                        ? <img
+                            src={img}
+                            alt={p.title}
+                            className="card-img"
+                            onError={e => { e.currentTarget.style.display = 'none'; const fallback = e.currentTarget.nextElementSibling as HTMLElement | null; if (fallback) fallback.style.display = 'flex' }}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', transition: 'transform 0.35s ease', display: 'block' }}
+                          />
+                        : null}
+                      <div className="card-img-fallback" style={{ width: '100%', height: '100%', display: img ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.35rem', color: MUTED, background: BG3 }}>
+                        <span style={{ fontSize: '2.25rem', opacity: 0.35 }}>🛹</span>
+                        <span style={{ fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{p.productType || 'No photo yet'}</span>
+                      </div>
                       {!inStock && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ background: '#111', color: MUTED, padding: '0.35rem 0.75rem', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', borderRadius: 4, border: `1px solid ${BORDER}` }}>SOLD OUT</span>
@@ -851,9 +920,9 @@ export default function Shop() {
                     </div>
 
                     <div className="card-info" style={{ padding: '0.75rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                      {p.vendor && (
-                        <p className="card-vendor" style={{ margin: 0, color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{p.vendor}</p>
-                      )}
+                      <p className="card-vendor" style={{ margin: 0, color: GOLD, fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', minHeight: '0.85em' }}>
+                        {p.vendor || p.productType || 'Hart Boys'}
+                      </p>
                       <h3 className="card-title" style={{ margin: 0, color: TEXT, fontSize: '0.85rem', fontWeight: 600, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 }}>
                         <Link to={`/shop/${p.handle}`} onClick={() => trackRecentlyViewed(p)} style={{ color: 'inherit', textDecoration: 'none' }}>{p.title}</Link>
                       </h3>
@@ -899,10 +968,22 @@ export default function Shop() {
           ) : (
             <div style={{ textAlign: 'center', padding: '4rem 1.5rem', color: MUTED }}>
               <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '1rem', opacity: 0.4 }}>🔍</span>
-              <p style={{ fontSize: '1rem', marginBottom: '1.25rem', letterSpacing: '0.04em' }}>No products found</p>
-              <button onClick={clearFilters} style={{ padding: '0.7rem 1.75rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em', fontSize: '0.875rem', fontFamily: 'inherit' }}>
-                VIEW ALL PRODUCTS
-              </button>
+              <p style={{ fontSize: '1rem', marginBottom: '0.5rem', letterSpacing: '0.04em' }}>
+                {showSoldOut ? 'No products found' : 'Nothing in stock in this view'}
+              </p>
+              {!showSoldOut && (
+                <p style={{ fontSize: '0.85rem', marginBottom: '1.25rem' }}>Sold-out items are hidden. Turn on “Show sold out” to see them.</p>
+              )}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {!showSoldOut && (
+                  <button onClick={() => setShowSoldOut(true)} style={{ padding: '0.7rem 1.5rem', background: 'none', border: `1px solid ${GOLD}`, color: GOLD, borderRadius: 6, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em', fontSize: '0.875rem', fontFamily: 'inherit' }}>
+                    SHOW SOLD OUT
+                  </button>
+                )}
+                <button onClick={clearFilters} style={{ padding: '0.7rem 1.75rem', background: GOLD, border: 'none', color: BG, borderRadius: 6, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.06em', fontSize: '0.875rem', fontFamily: 'inherit' }}>
+                  VIEW ALL PRODUCTS
+                </button>
+              </div>
             </div>
           )}
 
@@ -961,7 +1042,7 @@ export default function Shop() {
                     >
                       <div style={{ aspectRatio: '1', overflow: 'hidden', background: BG, position: 'relative' }}>
                         {img
-                          ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          ? <img src={img} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: MUTED, opacity: 0.3 }}>🛹</div>
                         }
                         {!inStock && (

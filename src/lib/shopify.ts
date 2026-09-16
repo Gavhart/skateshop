@@ -16,12 +16,14 @@ export interface ProductVariant {
   availableForSale: boolean
   quantityAvailable: number | null
   price?: { amount: string; currencyCode: string }
+  selectedOptions?: Array<{ name: string; value: string }>
 }
 
 export interface Product {
   id: string
   title: string
   description: string
+  descriptionHtml?: string
   handle: string
   productType: string
   vendor: string
@@ -61,6 +63,7 @@ const PRODUCT_FIELDS = `
   id
   title
   description
+  descriptionHtml
   handle
   productType
   vendor
@@ -82,6 +85,7 @@ const PRODUCT_FIELDS = `
         availableForSale
         quantityAvailable
         price { amount currencyCode }
+        selectedOptions { name value }
       }
     }
   }

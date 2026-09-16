@@ -270,6 +270,7 @@ function Layout() {
   const navLinks = [
     { to: '/', label: 'HOME' },
     { to: '/shop', label: 'SHOP' },
+    { to: '/starter', label: 'STARTER' },
     { to: '/build', label: 'BUILD A BOARD' },
     { to: '/updates', label: 'UPDATES' },
     { to: '/about', label: 'ABOUT' },
@@ -348,6 +349,8 @@ function Layout() {
             ))}
           </nav>
           <div className="mobile-menu-footer">
+            <Link to="/starter" onClick={() => setMenuOpen(false)}>STARTER</Link>
+            <Link to="/build" onClick={() => setMenuOpen(false)}>BUILD A BOARD</Link>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>CONTACT</Link>
             <Link to="/shipping" onClick={() => setMenuOpen(false)}>SHIPPING</Link>
             <Link to="/returns" onClick={() => setMenuOpen(false)}>RETURNS</Link>
@@ -378,6 +381,8 @@ function Layout() {
               </p>
             </div>
             <div className="footer-links">
+              <Link to="/starter">STARTER</Link>
+              <Link to="/build">BUILD A BOARD</Link>
               <Link to="/contact">CONTACT</Link>
               <Link to="/shipping">SHIPPING</Link>
               <Link to="/returns">RETURNS</Link>

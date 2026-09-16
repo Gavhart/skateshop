@@ -23,6 +23,10 @@ const DESCRIPTIONS: Record<string, { title: string; description: string }> = {
     title: `Build a Board | ${shopInfo.name}`,
     description: `Build a custom skateboard at ${shopInfo.name} in ${shopInfo.city}, ${shopInfo.state}.`,
   },
+  '/starter': {
+    title: `First board | ${shopInfo.name}`,
+    description: `Get a first skateboard from in-stock completes or a guided deck, trucks, wheels, and grip setup at ${shopInfo.name} in ${shopInfo.city}, ${shopInfo.state}.`,
+  },
   '/updates': {
     title: `Updates | ${shopInfo.name}`,
     description: `Drops, classes, and shop news from ${shopInfo.name} in ${shopInfo.city}, Alaska.`,
@@ -41,7 +45,7 @@ const DESCRIPTIONS: Record<string, { title: string; description: string }> = {
   },
 }
 
-const CHILD_HANDLED = new Set(['/privacy', '/terms', '/shipping'])
+const CHILD_HANDLED = new Set(['/privacy', '/terms', '/shipping', '/starter'])
 
 export default function RouteSeo() {
   const { pathname } = useLocation()

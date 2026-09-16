@@ -407,6 +407,7 @@ export default function BuildABoard() {
           </h1>
           <p style={{ color: MUTED, fontSize: '0.9rem', maxWidth: 520, margin: '0 auto' }}>
             Finish each category—deck, trucks, wheels, and one pick from each hardware type we stock (bearings, griptape, bolts)—before reviewing and adding everything to cart.
+            First board? The <Link to="/starter" style={{ color: GOLD }}>Starter</Link> path is shorter.
           </p>
         </div>
 

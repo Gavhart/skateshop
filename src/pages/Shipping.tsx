@@ -11,15 +11,19 @@ export default function Shipping() {
       path="/shipping"
       lead="We ship from the Kenai Peninsula. Alaska is a long way from most warehouses — that's why we keep the policy simple and the threshold honest."
     >
-      <h2>Local pickup</h2>
+      <h2>Pick up in {shopInfo.city}</h2>
       <p>
-        You can pick up online orders at the shop: {shopInfo.mall}, {shopInfo.suite}, {shopInfo.street},{' '}
-        {shopInfo.city}, {shopInfo.state} {shopInfo.zip}.
+        <strong>{shopInfo.mall}, {shopInfo.suite}</strong><br />
+        {shopInfo.street}, {shopInfo.city}, {shopInfo.state} {shopInfo.zip}
+      </p>
+      <p>
+        Pickup is the easy option if you’re on the Peninsula. Shipping is also available — and orders of{' '}
+        <strong>{formatUsd(shopInfo.freeShippingThreshold)}+</strong> ship free.
       </p>
       <p>
         If Shopify checkout offers a local pickup option, choose that. We are not inventing a fake pickup
         button on this site — pickup is set up in Shopify when it’s available. If you don’t see pickup at
-        checkout, put a note on the order, DM{' '}
+        checkout, put a note on the order (the cart has a field for it), DM{' '}
         <a href={shopInfo.instagramUrl} target="_blank" rel="noreferrer">{shopInfo.instagramHandle}</a>,
         or come in and we’ll sort it.
       </p>

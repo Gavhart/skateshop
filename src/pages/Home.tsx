@@ -338,7 +338,8 @@ export default function Home() {
 
         <div className="hero-buttons reveal reveal-delay-3">
           <Link to="/shop" className="btn btn-primary">SHOP NOW</Link>
-          <Link to="/build" className="btn btn-hero-build">BUILD A BOARD</Link>
+          <Link to="/starter" className="btn btn-hero-build">FIRST BOARD</Link>
+          <Link to="/build" className="btn btn-secondary">BUILD A BOARD</Link>
           <Link to="/classes" className="btn btn-secondary">SKATE CLASSES</Link>
         </div>
 
@@ -369,6 +370,20 @@ export default function Home() {
           <span className="feature-icon">🔥</span>
           <h3>SKATE CLASSES</h3>
           <p>Beginner to advanced<br />Private &amp; group lessons<br />Book online</p>
+        </div>
+      </section>
+
+      <section className="starter-home-band reveal">
+        <div className="starter-home-band-inner">
+          <div>
+            <p className="starter-home-kicker">New to skating?</p>
+            <h2>Get a first board without knowing the parts</h2>
+            <p>We only show in-stock decks, trucks, wheels, and grip — or grab a complete if we have one. Free shipping at ${shopInfo.freeShippingThreshold}+.</p>
+          </div>
+          <div className="starter-home-actions">
+            <Link to="/starter" className="btn btn-primary">START HERE</Link>
+            <Link to="/build" className="btn btn-secondary">BUILD A BOARD</Link>
+          </div>
         </div>
       </section>
 
